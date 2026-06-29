@@ -1,28 +1,35 @@
 import { db, auth } from './firebase-config.js';
 import {
   collection, addDoc, updateDoc, deleteDoc, doc,
-  query, where, orderBy, getDocs, getDoc, serverTimestamp
+  query, where, getDocs, getDoc, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
-// Get all assets for the current user
+// Sort docs by createdAt descending in JS to avoid needing composite indexes
+function sortByCreatedAt(docs) {
+  return docs.sort((a, b) => {
+    const aTime = a.createdAt?.seconds ?? 0;
+    const bTime = b.createdAt?.seconds ?? 0;
+    return bTime - aTime;
+  });
+}
+
+// ─── Assets ──────────────────────────────────────────────────
+
 export async function getAssets() {
   const q = query(
     collection(db, 'assets'),
-    where('userId', '==', auth.currentUser.uid),
-    orderBy('createdAt', 'desc')
+    where('userId', '==', auth.currentUser.uid)
   );
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return sortByCreatedAt(snap.docs.map(d => ({ id: d.id, ...d.data() })));
 }
 
-// Get a single asset by id
 export async function getAsset(id) {
   const snap = await getDoc(doc(db, 'assets', id));
   if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() };
 }
 
-// Add a new asset
 export async function addAsset(data) {
   return await addDoc(collection(db, 'assets'), {
     ...data,
@@ -32,7 +39,6 @@ export async function addAsset(data) {
   });
 }
 
-// Update an existing asset
 export async function updateAsset(id, data) {
   await updateDoc(doc(db, 'assets', id), {
     ...data,
@@ -40,7 +46,6 @@ export async function updateAsset(id, data) {
   });
 }
 
-// Delete an asset
 export async function deleteAsset(id) {
   await deleteDoc(doc(db, 'assets', id));
 }
@@ -50,11 +55,10 @@ export async function deleteAsset(id) {
 export async function getPlatforms() {
   const q = query(
     collection(db, 'platforms'),
-    where('userId', '==', auth.currentUser.uid),
-    orderBy('createdAt', 'desc')
+    where('userId', '==', auth.currentUser.uid)
   );
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return sortByCreatedAt(snap.docs.map(d => ({ id: d.id, ...d.data() })));
 }
 
 export async function getPlatform(id) {

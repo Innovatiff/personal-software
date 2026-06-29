@@ -53,6 +53,12 @@ export async function renderAddAsset(params) {
               <textarea class="form-control" id="description" placeholder="What is this asset? What does it do?">${existing?.description || ''}</textarea>
             </div>
 
+            <div class="form-group" id="site-url-group" style="display:none">
+              <label class="form-label">Site URL</label>
+              <input class="form-control" type="url" id="siteUrl" placeholder="https://yoursite.com" value="${existing?.siteUrl || ''}" />
+              <div class="form-hint">The URL of your AdSense website</div>
+            </div>
+
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Total Investment ($)</label>
@@ -87,6 +93,15 @@ export async function renderAddAsset(params) {
 
   attachNavbarEvents();
 
+  // Show site URL field only for AdSense Site
+  const categoryEl = document.getElementById('category');
+  const urlGroup = document.getElementById('site-url-group');
+  function toggleUrlField() {
+    urlGroup.style.display = categoryEl.value === 'AdSense Site' ? 'block' : 'none';
+  }
+  toggleUrlField();
+  categoryEl.addEventListener('change', toggleUrlField);
+
   document.getElementById('asset-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submit-btn');
@@ -101,6 +116,9 @@ export async function renderAddAsset(params) {
       totalCost: parseFloat(document.getElementById('totalCost').value) || 0,
       monthlyIncome: parseFloat(document.getElementById('monthlyIncome').value) || 0,
       notes: document.getElementById('notes').value.trim(),
+      siteUrl: document.getElementById('category').value === 'AdSense Site'
+        ? document.getElementById('siteUrl').value.trim()
+        : '',
     };
 
     if (!data.name) {

@@ -64,6 +64,13 @@ export async function renderAssetDetail(params) {
 
       ${asset.description ? `<div class="detail-desc">${escHtml(asset.description)}</div>` : ''}
 
+      ${asset.siteUrl ? `
+      <a href="${escHtml(asset.siteUrl)}" target="_blank" rel="noopener noreferrer"
+         style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;color:var(--accent-light);text-decoration:none;font-weight:500;transition:opacity 0.15s ease"
+         onmouseover="this.style.opacity='0.75'" onmouseout="this.style.opacity='1'">
+        🔗 ${escHtml(asset.siteUrl)}
+      </a>` : ''}
+
       <div class="detail-stats">
         <div class="detail-stat">
           <div class="detail-stat-label">Monthly Income</div>

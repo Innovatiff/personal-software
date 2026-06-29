@@ -13,6 +13,8 @@ export function renderSidebar(activePage) {
     { id: 'dashboard', label: 'Dashboard', icon: '⬛', hash: '/dashboard' },
     { id: 'assets', label: 'My Assets', icon: '◆', hash: '/assets' },
     { id: 'add', label: 'Add Asset', icon: '＋', hash: '/assets/add' },
+    { id: 'platforms', label: 'Platforms', icon: '⬡', hash: '/platforms' },
+    { id: 'monthly', label: 'Monthly Overview', icon: '$', hash: '/monthly' },
   ];
 
   const bottomItems = [

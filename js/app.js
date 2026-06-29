@@ -8,6 +8,9 @@ import { renderAssets } from './pages/assets.js';
 import { renderAddAsset } from './pages/add-asset.js';
 import { renderAssetDetail } from './pages/asset-detail.js';
 import { renderSettings } from './pages/settings.js';
+import { renderPlatforms } from './pages/platforms.js';
+import { renderAddPlatform } from './pages/add-platform.js';
+import { renderMonthly } from './pages/monthly.js';
 import { renderNotFound } from './pages/not-found.js';
 
 // Wrap a route handler to require authentication
@@ -44,6 +47,10 @@ onAuthStateChanged(auth, (user) => {
     .on('/assets/add', guard(() => renderAddAsset({})))
     .on('/assets/:id', guard(renderAssetDetail))
     .on('/assets/:id/edit', guard((p) => renderAddAsset(p)))
+    .on('/platforms', guard(renderPlatforms))
+    .on('/platforms/add', guard(() => renderAddPlatform({})))
+    .on('/platforms/:id/edit', guard((p) => renderAddPlatform(p)))
+    .on('/monthly', guard(renderMonthly))
     .on('/settings', guard(renderSettings))
     .on('/', () => {
       router.navigate(user ? '/dashboard' : '/login');

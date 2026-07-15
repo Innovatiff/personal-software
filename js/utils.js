@@ -34,6 +34,7 @@ export function formatCompact(amount) {
 // Each has an icon (from icons.js) and a signature color.
 export const CATEGORY_META = {
   'Business':           { iconName: 'briefcase',      color: '#818cf8' },
+  'Creator':            { iconName: 'video',          color: '#f97316' },
   'AdSense Site':       { iconName: 'globe',          color: '#34d399' },
   'YouTube Channel':    { iconName: 'youtube',        color: '#fb7185' },
   'Digital Product':    { iconName: 'package',        color: '#fbbf24' },

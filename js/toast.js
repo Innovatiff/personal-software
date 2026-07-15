@@ -1,4 +1,6 @@
 // Toast notification system
+import { icon } from './icons.js';
+
 let toastContainer = null;
 
 function getContainer() {
@@ -15,8 +17,8 @@ export function toast(message, type = 'info', duration = 3500) {
   const el = document.createElement('div');
   el.className = `toast ${type}`;
 
-  const icons = { success: '✓', error: '✕', info: 'ℹ' };
-  el.innerHTML = `<span style="font-size:16px;flex-shrink:0">${icons[type] || icons.info}</span><span>${message}</span>`;
+  const iconName = { success: 'check', error: 'x', info: 'info' }[type] || 'info';
+  el.innerHTML = `<span class="toast-icon">${icon(iconName, 14, { strokeWidth: 2.5 })}</span><span>${message}</span>`;
 
   container.appendChild(el);
 

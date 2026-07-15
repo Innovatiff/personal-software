@@ -2,13 +2,14 @@ import { auth } from '../firebase-config.js';
 import { signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
 import { router } from '../router.js';
 import { toast } from '../toast.js';
+import { brandMark } from '../icons.js';
 
 export function renderLogin() {
   document.getElementById('app').innerHTML = `
     <div class="auth-container">
       <div class="auth-card">
         <div class="auth-logo">
-          <div class="logo-icon">◈</div>
+          ${brandMark(30)}
           <span>Passive Asset Portfolio</span>
         </div>
         <h1 class="auth-title">Welcome back</h1>
@@ -24,9 +25,7 @@ export function renderLogin() {
             <input class="form-control" type="password" id="password" placeholder="••••••••" required autocomplete="current-password" />
           </div>
           <div id="login-error" class="form-error" style="display:none;margin-bottom:12px"></div>
-          <button class="btn btn-primary btn-full btn-lg" type="submit" id="login-btn">
-            Sign In
-          </button>
+          <button class="btn btn-primary btn-full btn-lg" type="submit" id="login-btn">Sign In</button>
         </form>
 
         <div class="auth-footer">

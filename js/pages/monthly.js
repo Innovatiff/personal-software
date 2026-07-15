@@ -1,8 +1,8 @@
-import { getAssets } from '../db.js';
-import { getPlatforms } from '../db.js';
+import { getAssets, getPlatforms } from '../db.js';
 import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/navbar.js';
-import { categoryMeta, formatCurrency, statusBadge } from '../utils.js';
-import { PLATFORM_ICONS, PLATFORM_COLORS } from './platforms.js';
+import { categoryMeta, formatCurrency } from '../utils.js';
+import { platformMeta } from './platforms.js';
+import { icon } from '../icons.js';
 
 export async function renderMonthly() {
   const app = document.getElementById('app');
@@ -11,9 +11,11 @@ export async function renderMonthly() {
     <div class="main-content">
       ${renderTopbar('Monthly Overview')}
       <div class="page-content">
-        <div style="display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text-muted)">
-          Loading…
+        <div class="page-header">
+          <h1 class="page-title">Monthly Overview</h1>
+          <p class="page-desc">Your complete financial picture for this month</p>
         </div>
+        <div class="stats-grid">${Array(6).fill('<div class="skeleton skeleton-card"></div>').join('')}</div>
       </div>
     </div>
   `;
@@ -22,44 +24,34 @@ export async function renderMonthly() {
   let assets = [], platforms = [];
   try {
     [assets, platforms] = await Promise.all([getAssets(), getPlatforms()]);
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) { console.error(err); }
 
   buildMonthlyPage(assets, platforms);
 }
 
 function buildMonthlyPage(assets, platforms) {
-  const totalEarnings = assets.reduce((s, a) => s + (Number(a.monthlyIncome) || 0), 0);
-  const totalExpenses = platforms.reduce((s, p) => s + (Number(p.monthlyCost) || 0), 0);
+  const totalEarnings = sum(assets, 'monthlyIncome');
+  const totalExpenses = sum(platforms, 'monthlyCost');
   const netIncome = totalEarnings - totalExpenses;
-  const invested = assets.reduce((s, a) => s + (Number(a.totalCost) || 0), 0);
+  const invested = sum(assets, 'totalCost');
   const netYearly = netIncome * 12;
   const roi = invested > 0 ? ((netYearly / invested) * 100).toFixed(1) : null;
+  const expenseRatio = totalEarnings > 0 ? ((totalExpenses / totalEarnings) * 100).toFixed(0) : null;
 
-  // Top assets by income
-  const topAssets = [...assets]
-    .filter(a => Number(a.monthlyIncome) > 0)
-    .sort((a, b) => (Number(b.monthlyIncome) || 0) - (Number(a.monthlyIncome) || 0))
-    .slice(0, 8);
+  const topAssets = [...assets].filter(a => num(a.monthlyIncome) > 0)
+    .sort((a, b) => num(b.monthlyIncome) - num(a.monthlyIncome));
+  const topPlatforms = [...platforms].sort((a, b) => num(b.monthlyCost) - num(a.monthlyCost));
 
-  // Top platforms by cost
-  const topPlatforms = [...platforms]
-    .sort((a, b) => (Number(b.monthlyCost) || 0) - (Number(a.monthlyCost) || 0));
+  const earningsByCat = groupSum(assets, 'category', 'monthlyIncome');
+  const expensesByCat = groupSum(platforms, 'category', 'monthlyCost');
 
-  // Earnings by category
-  const earningsByCategory = {};
-  assets.forEach(a => {
-    if (!earningsByCategory[a.category]) earningsByCategory[a.category] = 0;
-    earningsByCategory[a.category] += Number(a.monthlyIncome) || 0;
-  });
-
-  // Expenses by category
-  const expensesByCategory = {};
-  platforms.forEach(p => {
-    if (!expensesByCategory[p.category]) expensesByCategory[p.category] = 0;
-    expensesByCategory[p.category] += Number(p.monthlyCost) || 0;
-  });
+  const statCard = (ic, color, label, value, sub, valueStyle = '') => `
+    <div class="stat-card">
+      <div class="stat-icon ${color}">${icon(ic, 19)}</div>
+      <div class="stat-label">${label}</div>
+      <div class="stat-value" style="${valueStyle}">${value}</div>
+      <div class="stat-sub">${sub}</div>
+    </div>`;
 
   const content = document.querySelector('.page-content');
   content.innerHTML = `
@@ -68,229 +60,81 @@ function buildMonthlyPage(assets, platforms) {
       <p class="page-desc">Your complete financial picture for this month</p>
     </div>
 
-    <!-- Top-level summary cards -->
-    <div class="stats-grid" style="margin-bottom:28px">
-      <div class="stat-card" style="animation-delay:0.05s">
-        <div class="stat-icon green">↑</div>
-        <div class="stat-label">Monthly Earnings</div>
-        <div class="stat-value green">${formatCurrency(totalEarnings)}</div>
-        <div class="stat-sub">From ${assets.length} asset${assets.length !== 1 ? 's' : ''}</div>
-      </div>
-      <div class="stat-card" style="animation-delay:0.1s">
-        <div class="stat-icon red">↓</div>
-        <div class="stat-label">Monthly Expenses</div>
-        <div class="stat-value" style="color:var(--red)">${formatCurrency(totalExpenses)}</div>
-        <div class="stat-sub">From ${platforms.length} platform${platforms.length !== 1 ? 's' : ''}</div>
-      </div>
-      <div class="stat-card" style="animation-delay:0.15s;border-color:${netIncome >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}">
-        <div class="stat-icon ${netIncome >= 0 ? 'green' : 'red'}">${netIncome >= 0 ? '✓' : '!'}</div>
-        <div class="stat-label">Net Monthly Income</div>
-        <div class="stat-value" style="color:${netIncome >= 0 ? 'var(--green)' : 'var(--red)'}">${formatCurrency(Math.abs(netIncome))}</div>
-        <div class="stat-sub" style="color:${netIncome >= 0 ? 'var(--green)' : 'var(--red)'}">
-          ${netIncome >= 0 ? 'Profit' : 'Running at a loss'}
-        </div>
-      </div>
-      <div class="stat-card" style="animation-delay:0.2s">
-        <div class="stat-icon blue">◆</div>
-        <div class="stat-label">Yearly Projection</div>
-        <div class="stat-value accent">${formatCurrency(netYearly)}</div>
-        <div class="stat-sub">Net annualized</div>
-      </div>
-      <div class="stat-card" style="animation-delay:0.25s">
-        <div class="stat-icon purple">%</div>
-        <div class="stat-label">Net ROI</div>
-        <div class="stat-value">${roi ? roi + '%' : '—'}</div>
-        <div class="stat-sub">Based on invested capital</div>
-      </div>
-      <div class="stat-card" style="animation-delay:0.3s">
-        <div class="stat-icon yellow">⬡</div>
-        <div class="stat-label">Expense Ratio</div>
-        <div class="stat-value">${totalEarnings > 0 ? ((totalExpenses / totalEarnings) * 100).toFixed(0) + '%' : '—'}</div>
-        <div class="stat-sub">Expenses / earnings</div>
-      </div>
+    <div class="stats-grid">
+      ${statCard('trendingUp', 'green', 'Monthly Earnings', formatCurrency(totalEarnings), `From ${assets.length} asset${assets.length !== 1 ? 's' : ''}`, 'color:var(--green)')}
+      ${statCard('trendingDown', 'red', 'Monthly Expenses', formatCurrency(totalExpenses), `From ${platforms.length} platform${platforms.length !== 1 ? 's' : ''}`, 'color:var(--red)')}
+      ${statCard(netIncome >= 0 ? 'check' : 'alert', netIncome >= 0 ? 'green' : 'red', 'Net Monthly Income', formatCurrency(Math.abs(netIncome)), netIncome >= 0 ? 'Profit' : 'Running at a loss', `color:${netIncome >= 0 ? 'var(--green)' : 'var(--red)'}`)}
+      ${statCard('activity', 'blue', 'Yearly Projection', formatCurrency(netYearly), 'Net annualized', 'color:var(--accent-light)')}
+      ${statCard('percent', 'purple', 'Net ROI', roi ? roi + '%' : '—', 'Based on invested capital')}
+      ${statCard('pie', 'yellow', 'Expense Ratio', expenseRatio ? expenseRatio + '%' : '—', 'Expenses ÷ earnings')}
     </div>
 
-    <!-- Earnings vs Expenses visual bar -->
-    ${totalEarnings > 0 || totalExpenses > 0 ? `
-    <div class="chart-card mb-24" style="margin-bottom:24px">
+    ${(totalEarnings > 0 || totalExpenses > 0) ? `
+    <div class="chart-card" style="margin-bottom:24px">
       <div class="section-header">
         <div>
           <div class="section-title">Earnings vs Expenses</div>
           <div class="section-sub">Monthly comparison</div>
         </div>
       </div>
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
-        <div style="flex:1;min-width:200px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
-            <span style="color:var(--text-secondary)">Earnings</span>
-            <span style="color:var(--green);font-weight:700">${formatCurrency(totalEarnings)}</span>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:18px">
+        <div style="flex:1;min-width:220px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px">
+            <span style="color:var(--text-secondary);display:inline-flex;align-items:center;gap:6px">${icon('trendingUp', 14)} Earnings</span>
+            <span class="num" style="color:var(--green);font-weight:700">${formatCurrency(totalEarnings)}</span>
           </div>
-          <div style="height:10px;background:rgba(255,255,255,0.06);border-radius:6px;overflow:hidden">
-            <div style="height:100%;background:var(--green);border-radius:6px;width:100%;transition:width 0.6s ease"></div>
-          </div>
+          <div class="bar-track" style="height:10px"><div class="bar-fill" style="width:100%;background:var(--green)"></div></div>
         </div>
-        <div style="flex:1;min-width:200px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
-            <span style="color:var(--text-secondary)">Expenses</span>
-            <span style="color:var(--red);font-weight:700">${formatCurrency(totalExpenses)}</span>
+        <div style="flex:1;min-width:220px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px">
+            <span style="color:var(--text-secondary);display:inline-flex;align-items:center;gap:6px">${icon('trendingDown', 14)} Expenses</span>
+            <span class="num" style="color:var(--red);font-weight:700">${formatCurrency(totalExpenses)}</span>
           </div>
-          <div style="height:10px;background:rgba(255,255,255,0.06);border-radius:6px;overflow:hidden">
-            <div style="height:100%;background:var(--red);border-radius:6px;width:${totalEarnings > 0 ? Math.min((totalExpenses/totalEarnings)*100, 100) : 100}%;transition:width 0.6s ease"></div>
-          </div>
+          <div class="bar-track" style="height:10px"><div class="bar-fill" style="width:${totalEarnings > 0 ? Math.min((totalExpenses / totalEarnings) * 100, 100) : 100}%;background:var(--red)"></div></div>
         </div>
       </div>
-      <div style="padding:16px;background:${netIncome >= 0 ? 'var(--green-soft)' : 'var(--red-soft)'};border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-        <span style="font-size:14px;color:var(--text-secondary)">Net monthly income</span>
-        <span style="font-size:22px;font-weight:800;color:${netIncome >= 0 ? 'var(--green)' : 'var(--red)'}">
-          ${netIncome >= 0 ? '+' : '-'}${formatCurrency(Math.abs(netIncome))}
+      <div style="padding:16px 18px;background:${netIncome >= 0 ? 'var(--green-soft)' : 'var(--red-soft)'};border-radius:var(--radius);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span style="font-size:14px;color:var(--text-secondary);font-weight:550">Net monthly income</span>
+        <span class="num" style="font-size:23px;font-weight:800;color:${netIncome >= 0 ? 'var(--green)' : 'var(--red)'}">
+          ${netIncome >= 0 ? '+' : '−'}${formatCurrency(Math.abs(netIncome))}
         </span>
       </div>
     </div>` : ''}
 
-    <!-- Two-column: earnings breakdown + expenses breakdown -->
-    <div class="grid-2" style="margin-bottom:28px">
+    <div class="grid-2" style="margin-bottom:24px">
+      ${breakdownCard('Monthly Earnings', 'trendingUp', 'var(--green)', formatCurrency(totalEarnings),
+        topAssets, totalEarnings, 'monthlyIncome', a => categoryMeta(a.category), earningsByCat, 'var(--green)',
+        'No income yet — add assets with monthly income.')}
 
-      <!-- Monthly Earnings breakdown -->
-      <div class="chart-card">
-        <div class="section-header">
-          <div>
-            <div class="section-title" style="color:var(--green)">↑ Monthly Earnings</div>
-            <div class="section-sub">${formatCurrency(totalEarnings)} total</div>
-          </div>
-        </div>
-        ${topAssets.length === 0 ? `
-          <div class="empty-state" style="padding:32px">
-            <div class="empty-icon" style="font-size:28px">💸</div>
-            <div class="empty-desc" style="margin:0">No income yet. Add assets with monthly income.</div>
-          </div>
-        ` : `
-          <div style="display:flex;flex-direction:column;gap:10px">
-            ${topAssets.map(a => {
-              const pct = totalEarnings > 0 ? ((Number(a.monthlyIncome) / totalEarnings) * 100).toFixed(0) : 0;
-              const meta = categoryMeta(a.category);
-              return `
-                <div>
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-                    <div style="display:flex;align-items:center;gap:8px;min-width:0">
-                      <span style="font-size:14px">${meta.icon}</span>
-                      <span style="font-size:13px;font-weight:500;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${escHtml(a.name)}</span>
-                    </div>
-                    <span style="font-size:13px;font-weight:700;color:var(--green);flex-shrink:0">${formatCurrency(Number(a.monthlyIncome) || 0)}</span>
-                  </div>
-                  <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden">
-                    <div style="height:100%;background:var(--green);border-radius:4px;width:${pct}%;opacity:0.8"></div>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        `}
-        ${Object.keys(earningsByCategory).length > 0 ? `
-          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">By category</div>
-            <div style="display:flex;flex-direction:column;gap:6px">
-              ${Object.entries(earningsByCategory).sort((a,b) => b[1]-a[1]).map(([cat, amt]) => `
-                <div style="display:flex;justify-content:space-between;font-size:13px">
-                  <span style="color:var(--text-secondary)">${cat}</span>
-                  <span style="font-weight:600;color:var(--green)">${formatCurrency(amt)}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>` : ''}
-      </div>
-
-      <!-- Monthly Expenses breakdown -->
-      <div class="chart-card">
-        <div class="section-header">
-          <div>
-            <div class="section-title" style="color:var(--red)">↓ Monthly Expenses</div>
-            <div class="section-sub">${formatCurrency(totalExpenses)} total</div>
-          </div>
-          <a href="#/platforms/add" class="btn btn-secondary btn-sm">+ Add</a>
-        </div>
-        ${topPlatforms.length === 0 ? `
-          <div class="empty-state" style="padding:32px">
-            <div class="empty-icon" style="font-size:28px">🏷</div>
-            <div class="empty-desc" style="margin:0">No platforms added yet. Track your monthly tool costs.</div>
-          </div>
-        ` : `
-          <div style="display:flex;flex-direction:column;gap:10px">
-            ${topPlatforms.map(p => {
-              const pct = totalExpenses > 0 ? ((Number(p.monthlyCost) / totalExpenses) * 100).toFixed(0) : 0;
-              const icon = PLATFORM_ICONS[p.category] || '◈';
-              return `
-                <div>
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-                    <div style="display:flex;align-items:center;gap:8px;min-width:0">
-                      <span style="font-size:14px">${icon}</span>
-                      <span style="font-size:13px;font-weight:500;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${escHtml(p.name)}</span>
-                    </div>
-                    <span style="font-size:13px;font-weight:700;color:var(--red);flex-shrink:0">${formatCurrency(Number(p.monthlyCost) || 0)}</span>
-                  </div>
-                  <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden">
-                    <div style="height:100%;background:var(--red);border-radius:4px;width:${pct}%;opacity:0.7"></div>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        `}
-        ${Object.keys(expensesByCategory).length > 0 ? `
-          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">By category</div>
-            <div style="display:flex;flex-direction:column;gap:6px">
-              ${Object.entries(expensesByCategory).sort((a,b) => b[1]-a[1]).map(([cat, amt]) => `
-                <div style="display:flex;justify-content:space-between;font-size:13px">
-                  <span style="color:var(--text-secondary)">${cat}</span>
-                  <span style="font-weight:600;color:var(--red)">${formatCurrency(amt)}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>` : ''}
-      </div>
+      ${breakdownCard('Monthly Expenses', 'trendingDown', 'var(--red)', formatCurrency(totalExpenses),
+        topPlatforms, totalExpenses, 'monthlyCost', p => platformMeta(p.category), expensesByCat, 'var(--red)',
+        'No platforms added yet — track your monthly tool costs.', true)}
     </div>
 
-    <!-- Yearly projection table -->
-    <div class="chart-card" style="animation:fadeInUp 0.5s ease">
+    <div class="chart-card">
       <div class="section-header">
         <div>
           <div class="section-title">Yearly Projection</div>
-          <div class="section-sub">Based on current monthly figures × 12</div>
+          <div class="section-sub">Current monthly figures × 12</div>
         </div>
       </div>
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:14px">
           <thead>
             <tr style="border-bottom:1px solid var(--border)">
-              <th style="text-align:left;padding:10px 0;color:var(--text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em">Line item</th>
-              <th style="text-align:right;padding:10px 0;color:var(--text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em">Monthly</th>
-              <th style="text-align:right;padding:10px 0;color:var(--text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em">Yearly</th>
+              <th style="text-align:left;padding:10px 0;color:var(--text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Line item</th>
+              <th style="text-align:right;padding:10px 0;color:var(--text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Monthly</th>
+              <th style="text-align:right;padding:10px 0;color:var(--text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Yearly</th>
             </tr>
           </thead>
           <tbody>
-            <tr style="border-bottom:1px solid var(--border)">
-              <td style="padding:12px 0;color:var(--green);font-weight:600">↑ Total Earnings</td>
-              <td style="text-align:right;padding:12px 0;color:var(--green);font-weight:700">${formatCurrency(totalEarnings)}</td>
-              <td style="text-align:right;padding:12px 0;color:var(--green);font-weight:700">${formatCurrency(totalEarnings * 12)}</td>
-            </tr>
-            <tr style="border-bottom:1px solid var(--border)">
-              <td style="padding:12px 0;color:var(--red);font-weight:600">↓ Total Expenses</td>
-              <td style="text-align:right;padding:12px 0;color:var(--red);font-weight:700">-${formatCurrency(totalExpenses)}</td>
-              <td style="text-align:right;padding:12px 0;color:var(--red);font-weight:700">-${formatCurrency(totalExpenses * 12)}</td>
-            </tr>
-            <tr style="border-bottom:1px solid var(--border)">
-              <td style="padding:12px 0;color:var(--text-muted);font-size:13px">Capital Invested</td>
-              <td style="text-align:right;padding:12px 0;color:var(--text-secondary)">—</td>
-              <td style="text-align:right;padding:12px 0;color:var(--text-secondary)">${formatCurrency(invested)}</td>
-            </tr>
+            ${tableRow('Total Earnings', formatCurrency(totalEarnings), formatCurrency(totalEarnings * 12), 'var(--green)')}
+            ${tableRow('Total Expenses', '−' + formatCurrency(totalExpenses), '−' + formatCurrency(totalExpenses * 12), 'var(--red)')}
+            ${tableRow('Capital Invested', '—', formatCurrency(invested), 'var(--text-secondary)', true)}
             <tr>
-              <td style="padding:14px 0;font-weight:800;font-size:15px">Net Income</td>
-              <td style="text-align:right;padding:14px 0;font-weight:800;font-size:16px;color:${netIncome >= 0 ? 'var(--green)' : 'var(--red)'}">
-                ${netIncome >= 0 ? '+' : '-'}${formatCurrency(Math.abs(netIncome))}
-              </td>
-              <td style="text-align:right;padding:14px 0;font-weight:800;font-size:16px;color:${netIncome >= 0 ? 'var(--green)' : 'var(--red)'}">
-                ${netIncome >= 0 ? '+' : '-'}${formatCurrency(Math.abs(netYearly))}
-              </td>
+              <td style="padding:15px 0;font-weight:800;font-size:15px">Net Income</td>
+              <td class="num" style="text-align:right;padding:15px 0;font-weight:800;font-size:16px;color:${netIncome >= 0 ? 'var(--green)' : 'var(--red)'}">${netIncome >= 0 ? '+' : '−'}${formatCurrency(Math.abs(netIncome))}</td>
+              <td class="num" style="text-align:right;padding:15px 0;font-weight:800;font-size:16px;color:${netIncome >= 0 ? 'var(--green)' : 'var(--red)'}">${netIncome >= 0 ? '+' : '−'}${formatCurrency(Math.abs(netYearly))}</td>
             </tr>
           </tbody>
         </table>
@@ -299,6 +143,71 @@ function buildMonthlyPage(assets, platforms) {
   `;
 }
 
+function breakdownCard(title, ic, color, total, items, totalVal, key, metaFn, byCat, barColor, emptyMsg, withAdd) {
+  return `
+    <div class="chart-card">
+      <div class="section-header">
+        <div>
+          <div class="section-title" style="color:${color};display:flex;align-items:center;gap:7px">${icon(ic, 16)} ${title}</div>
+          <div class="section-sub">${total} total</div>
+        </div>
+        ${withAdd ? `<a href="#/platforms/add" class="btn btn-secondary btn-sm">${icon('plus', 14)} Add</a>` : ''}
+      </div>
+      ${items.length === 0 ? `
+        <div class="empty-state" style="padding:28px 0">
+          <div class="empty-icon" style="width:48px;height:48px;border-radius:14px">${icon(ic, 22)}</div>
+          <div class="empty-desc" style="margin:0">${emptyMsg}</div>
+        </div>
+      ` : `
+        <div style="display:flex;flex-direction:column;gap:12px">
+          ${items.slice(0, 8).map(it => {
+            const meta = metaFn(it);
+            const pct = totalVal > 0 ? (num(it[key]) / totalVal) * 100 : 0;
+            return `
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                  <div style="display:flex;align-items:center;gap:9px;min-width:0">
+                    <span style="color:${meta.color};display:flex;flex-shrink:0">${icon(meta.iconName, 15)}</span>
+                    <span style="font-size:13px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(it.name)}</span>
+                  </div>
+                  <span class="num" style="font-size:13px;font-weight:700;color:${color};flex-shrink:0">${formatCurrency(num(it[key]))}</span>
+                </div>
+                <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${barColor};opacity:0.85"></div></div>
+              </div>`;
+          }).join('')}
+        </div>
+        ${Object.keys(byCat).length > 0 ? `
+          <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:11px">By category</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              ${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => `
+                <div style="display:flex;justify-content:space-between;font-size:13px">
+                  <span style="color:var(--text-secondary)">${cat}</span>
+                  <span class="num" style="font-weight:600;color:${color}">${formatCurrency(amt)}</span>
+                </div>`).join('')}
+            </div>
+          </div>` : ''}
+      `}
+    </div>`;
+}
+
+function tableRow(label, monthly, yearly, color, muted) {
+  return `
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:13px 0;color:${color};font-weight:${muted ? '400' : '600'};font-size:${muted ? '13px' : '14px'}">${label}</td>
+      <td class="num" style="text-align:right;padding:13px 0;color:${color};font-weight:${muted ? '400' : '700'}">${monthly}</td>
+      <td class="num" style="text-align:right;padding:13px 0;color:${color};font-weight:${muted ? '400' : '700'}">${yearly}</td>
+    </tr>`;
+}
+
+// helpers
+const num = (v) => Number(v) || 0;
+const sum = (arr, key) => arr.reduce((s, x) => s + num(x[key]), 0);
+function groupSum(arr, groupKey, valKey) {
+  const out = {};
+  arr.forEach(x => { out[x[groupKey]] = (out[x[groupKey]] || 0) + num(x[valKey]); });
+  return out;
+}
 function escHtml(str) {
   if (!str) return '';
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

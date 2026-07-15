@@ -1,9 +1,15 @@
 import { getAssets } from '../db.js';
 import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/navbar.js';
 import { categoryMeta, statusBadge, formatCurrency, CATEGORIES } from '../utils.js';
+import { icon } from '../icons.js';
+
+let _all = [];
+let _state = { filter: 'All', sort: 'newest', search: '' };
 
 export async function renderAssets() {
   const app = document.getElementById('app');
+  _state = { filter: 'All', sort: 'newest', search: '' };
+
   app.innerHTML = `
     ${renderSidebar('assets')}
     <div class="main-content">
@@ -13,89 +19,116 @@ export async function renderAssets() {
           <h1 class="page-title">My Assets</h1>
           <p class="page-desc">All your passive income sources in one place</p>
         </div>
-        <div style="display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text-muted)">
-          Loading…
+        <div class="assets-grid">
+          ${Array(6).fill('<div class="skeleton skeleton-card" style="height:150px"></div>').join('')}
         </div>
       </div>
     </div>
   `;
   attachNavbarEvents();
 
-  let assets = [];
   try {
-    assets = await getAssets();
+    _all = await getAssets();
   } catch (err) {
     console.error(err);
+    _all = [];
   }
 
-  renderAssetList(assets, 'All');
+  renderList();
 }
 
-function renderAssetList(assets, activeFilter, sortKey = 'newest') {
-  let filtered = assets;
+function renderList() {
+  const { filter, sort, search } = _state;
 
-  if (activeFilter !== 'All') {
-    filtered = assets.filter(a => a.category === activeFilter);
+  let filtered = _all;
+  if (filter !== 'All') filtered = filtered.filter(a => a.category === filter);
+  if (search.trim()) {
+    const q = search.toLowerCase();
+    filtered = filtered.filter(a =>
+      (a.name || '').toLowerCase().includes(q) ||
+      (a.description || '').toLowerCase().includes(q));
   }
 
-  // Sorting
   const sorted = [...filtered].sort((a, b) => {
-    if (sortKey === 'newest') return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
-    if (sortKey === 'oldest') return (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0);
-    if (sortKey === 'income-high') return (Number(b.monthlyIncome) || 0) - (Number(a.monthlyIncome) || 0);
-    if (sortKey === 'income-low') return (Number(a.monthlyIncome) || 0) - (Number(b.monthlyIncome) || 0);
-    if (sortKey === 'invest-high') return (Number(b.totalCost) || 0) - (Number(a.totalCost) || 0);
-    return 0;
+    switch (sort) {
+      case 'newest': return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+      case 'oldest': return (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0);
+      case 'income-high': return num(b.monthlyIncome) - num(a.monthlyIncome);
+      case 'income-low': return num(a.monthlyIncome) - num(b.monthlyIncome);
+      case 'invest-high': return num(b.totalCost) - num(a.totalCost);
+      default: return 0;
+    }
   });
+
+  // Only show category chips that have assets (plus All)
+  const counts = {};
+  _all.forEach(a => { counts[a.category] = (counts[a.category] || 0) + 1; });
+  const chips = ['All', ...CATEGORIES.filter(c => counts[c])];
 
   const content = document.querySelector('.page-content');
   content.innerHTML = `
-    <div class="page-header">
-      <h1 class="page-title">My Assets</h1>
-      <p class="page-desc">${assets.length} asset${assets.length !== 1 ? 's' : ''} tracked</p>
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <h1 class="page-title">My Assets</h1>
+        <p class="page-desc">${_all.length} asset${_all.length !== 1 ? 's' : ''} tracked</p>
+      </div>
+      <div class="search-wrap">
+        ${icon('search', 16)}
+        <input class="search-input" id="asset-search" type="text" placeholder="Search assets…" value="${escAttr(search)}" />
+      </div>
     </div>
 
     <div class="filters-bar">
-      ${['All', ...CATEGORIES].map(cat => `
-        <button class="filter-chip ${activeFilter === cat ? 'active' : ''}" data-filter="${cat}">${cat}</button>
+      ${chips.map(cat => `
+        <button class="filter-chip ${filter === cat ? 'active' : ''}" data-filter="${escAttr(cat)}">
+          ${cat}
+          <span class="chip-count">${cat === 'All' ? _all.length : counts[cat]}</span>
+        </button>
       `).join('')}
       <select class="sort-select" id="sort-select">
-        <option value="newest" ${sortKey === 'newest' ? 'selected' : ''}>Newest first</option>
-        <option value="oldest" ${sortKey === 'oldest' ? 'selected' : ''}>Oldest first</option>
-        <option value="income-high" ${sortKey === 'income-high' ? 'selected' : ''}>Highest income</option>
-        <option value="income-low" ${sortKey === 'income-low' ? 'selected' : ''}>Lowest income</option>
-        <option value="invest-high" ${sortKey === 'invest-high' ? 'selected' : ''}>Highest investment</option>
+        <option value="newest" ${sort === 'newest' ? 'selected' : ''}>Newest first</option>
+        <option value="oldest" ${sort === 'oldest' ? 'selected' : ''}>Oldest first</option>
+        <option value="income-high" ${sort === 'income-high' ? 'selected' : ''}>Highest income</option>
+        <option value="income-low" ${sort === 'income-low' ? 'selected' : ''}>Lowest income</option>
+        <option value="invest-high" ${sort === 'invest-high' ? 'selected' : ''}>Highest investment</option>
       </select>
     </div>
 
-    ${sorted.length === 0 ? `
-      <div class="empty-state">
-        <div class="empty-icon">💼</div>
-        <div class="empty-title">${activeFilter === 'All' ? 'No passive assets yet' : `No ${activeFilter} assets`}</div>
-        <div class="empty-desc">${activeFilter === 'All'
-          ? "You don't have any passive assets yet. Add your first one."
-          : `You don't have any ${activeFilter} assets. Try adding one.`}</div>
-        <a href="#/assets/add" class="btn btn-primary">+ Add Asset</a>
-      </div>
-    ` : `
-      <div class="assets-grid">
-        ${sorted.map(asset => assetCard(asset)).join('')}
-      </div>
+    ${sorted.length === 0 ? emptyState(filter, search) : `
+      <div class="assets-grid">${sorted.map(assetCard).join('')}</div>
     `}
   `;
 
-  // Bind filters
+  // Bind events
   content.querySelectorAll('.filter-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const filter = btn.dataset.filter;
-      const sort = document.getElementById('sort-select')?.value || 'newest';
-      renderAssetList(assets, filter, sort);
-    });
+    btn.addEventListener('click', () => { _state.filter = btn.dataset.filter; renderList(); });
   });
-
   content.querySelector('#sort-select')?.addEventListener('change', (e) => {
-    renderAssetList(assets, activeFilter, e.target.value);
+    _state.sort = e.target.value; renderList();
   });
+  const searchEl = content.querySelector('#asset-search');
+  if (searchEl) {
+    searchEl.addEventListener('input', (e) => { _state.search = e.target.value; renderList(); });
+    // Keep focus + caret after re-render
+    searchEl.focus();
+    const len = searchEl.value.length;
+    searchEl.setSelectionRange(len, len);
+  }
+}
+
+function emptyState(filter, search) {
+  const msg = search.trim()
+    ? `No assets match "${escHtml(search)}".`
+    : filter === 'All'
+      ? "You don't have any passive assets yet. Add your first one."
+      : `You don't have any ${filter} assets yet.`;
+  return `
+    <div class="empty-state">
+      <div class="empty-icon">${icon(search.trim() ? 'search' : 'layers', 28)}</div>
+      <div class="empty-title">${filter === 'All' && !search.trim() ? 'No passive assets yet' : 'Nothing found'}</div>
+      <div class="empty-desc">${msg}</div>
+      <a href="#/assets/add" class="btn btn-primary">${icon('plus', 16)} Add Asset</a>
+    </div>`;
 }
 
 function assetCard(asset) {
@@ -104,7 +137,7 @@ function assetCard(asset) {
     <div class="asset-card" onclick="location.hash='#/assets/${asset.id}'">
       <div class="asset-card-header">
         <div style="display:flex;gap:12px;align-items:flex-start;flex:1;min-width:0">
-          <div class="asset-card-icon" style="background:${meta.bg}">${meta.icon}</div>
+          <div class="asset-card-icon" style="background:${meta.bg};color:${meta.color}">${icon(meta.iconName, 21)}</div>
           <div style="min-width:0">
             <div class="asset-card-name">${escHtml(asset.name)}</div>
             <div class="badge badge-category">${asset.category}</div>
@@ -116,22 +149,24 @@ function assetCard(asset) {
       <div class="asset-card-meta">
         <div class="asset-meta-item">
           <div class="asset-meta-label">Monthly</div>
-          <div class="asset-meta-value green">${formatCurrency(Number(asset.monthlyIncome) || 0)}</div>
+          <div class="asset-meta-value green">${formatCurrency(num(asset.monthlyIncome))}</div>
         </div>
         <div class="asset-meta-item">
           <div class="asset-meta-label">Invested</div>
-          <div class="asset-meta-value">${formatCurrency(Number(asset.totalCost) || 0)}</div>
+          <div class="asset-meta-value">${formatCurrency(num(asset.totalCost))}</div>
         </div>
         <div class="asset-meta-item">
           <div class="asset-meta-label">Yearly</div>
-          <div class="asset-meta-value">${formatCurrency((Number(asset.monthlyIncome) || 0) * 12)}</div>
+          <div class="asset-meta-value">${formatCurrency(num(asset.monthlyIncome) * 12)}</div>
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
 }
+
+const num = (v) => Number(v) || 0;
 
 function escHtml(str) {
   if (!str) return '';
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+function escAttr(str) { return escHtml(str).replace(/'/g, '&#39;'); }

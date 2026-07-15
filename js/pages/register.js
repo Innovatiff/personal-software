@@ -2,13 +2,14 @@ import { auth } from '../firebase-config.js';
 import { createUserWithEmailAndPassword, updateProfile } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
 import { router } from '../router.js';
 import { toast } from '../toast.js';
+import { brandMark } from '../icons.js';
 
 export function renderRegister() {
   document.getElementById('app').innerHTML = `
     <div class="auth-container">
       <div class="auth-card">
         <div class="auth-logo">
-          <div class="logo-icon">◈</div>
+          ${brandMark(30)}
           <span>Passive Asset Portfolio</span>
         </div>
         <h1 class="auth-title">Create account</h1>
@@ -28,9 +29,7 @@ export function renderRegister() {
             <input class="form-control" type="password" id="password" placeholder="At least 6 characters" required autocomplete="new-password" minlength="6" />
           </div>
           <div id="register-error" class="form-error" style="display:none;margin-bottom:12px"></div>
-          <button class="btn btn-primary btn-full btn-lg" type="submit" id="register-btn">
-            Create Account
-          </button>
+          <button class="btn btn-primary btn-full btn-lg" type="submit" id="register-btn">Create Account</button>
         </form>
 
         <div class="auth-footer">

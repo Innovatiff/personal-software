@@ -3,6 +3,7 @@ import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/n
 import { toast } from '../toast.js';
 import { router } from '../router.js';
 import { PLATFORM_CATEGORIES } from './platforms.js';
+import { icon } from '../icons.js';
 
 export async function renderAddPlatform(params) {
   const editId = params?.id || null;
@@ -18,7 +19,7 @@ export async function renderAddPlatform(params) {
       ${renderTopbar(editId ? 'Edit Platform' : 'Add Platform')}
       <div class="page-content">
         <div class="page-header" style="display:flex;align-items:center;gap:12px">
-          <button class="btn btn-ghost btn-sm" onclick="history.back()">← Back</button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="history.back()">${icon('arrowLeft', 16)}</button>
           <div>
             <h1 class="page-title">${editId ? 'Edit Platform' : 'Add Platform'}</h1>
             <p class="page-desc">${editId ? 'Update platform details' : 'Track a tool or service you pay for'}</p>
@@ -67,9 +68,9 @@ export async function renderAddPlatform(params) {
 
             <div style="display:flex;gap:10px;margin-top:8px">
               <button class="btn btn-primary btn-lg" type="submit" id="submit-btn">
-                ${editId ? '✓ Save Changes' : '+ Add Platform'}
+                ${icon(editId ? 'check' : 'plus', 17)} ${editId ? 'Save Changes' : 'Add Platform'}
               </button>
-              <button class="btn btn-secondary" type="button" onclick="history.back()">Cancel</button>
+              <button class="btn btn-secondary btn-lg" type="button" onclick="history.back()">Cancel</button>
             </div>
           </form>
         </div>
@@ -116,7 +117,7 @@ export async function renderAddPlatform(params) {
       errEl.textContent = 'Failed to save. Please try again.';
       errEl.style.display = 'block';
       btn.disabled = false;
-      btn.textContent = editId ? '✓ Save Changes' : '+ Add Platform';
+      btn.textContent = editId ? 'Save Changes' : 'Add Platform';
     }
   });
 }

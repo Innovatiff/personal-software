@@ -3,6 +3,7 @@ import { updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCre
 import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/navbar.js';
 import { toast } from '../toast.js';
 import { router } from '../router.js';
+import { icon } from '../icons.js';
 
 export function renderSettings() {
   const user = auth.currentUser;
@@ -20,7 +21,7 @@ export function renderSettings() {
 
         <!-- Profile -->
         <div class="settings-section">
-          <div class="settings-title">Profile</div>
+          <div class="settings-title" style="display:flex;align-items:center;gap:8px">${icon('user', 16)} Profile</div>
           <div class="settings-desc">Update your display name</div>
 
           <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
@@ -42,7 +43,7 @@ export function renderSettings() {
 
         <!-- Password -->
         <div class="settings-section">
-          <div class="settings-title">Change Password</div>
+          <div class="settings-title" style="display:flex;align-items:center;gap:8px">${icon('lock', 16)} Change Password</div>
           <div class="settings-desc">Update your account password</div>
 
           <form id="password-form">
@@ -61,9 +62,9 @@ export function renderSettings() {
 
         <!-- Danger Zone -->
         <div class="danger-zone">
-          <div class="settings-title" style="color:var(--red)">Danger Zone</div>
+          <div class="settings-title" style="color:var(--red);display:flex;align-items:center;gap:8px">${icon('alert', 16)} Danger Zone</div>
           <div class="settings-desc">These actions are irreversible. Be careful.</div>
-          <button class="btn btn-danger" id="delete-account-btn">Delete Account</button>
+          <button class="btn btn-danger" id="delete-account-btn">${icon('trash', 15)} Delete Account</button>
         </div>
       </div>
     </div>

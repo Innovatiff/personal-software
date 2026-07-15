@@ -2,7 +2,8 @@ import { addAsset, getAsset, updateAsset } from '../db.js';
 import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/navbar.js';
 import { toast } from '../toast.js';
 import { router } from '../router.js';
-import { CATEGORIES, STATUSES } from '../utils.js';
+import { CATEGORIES, STATUSES, categoryMeta } from '../utils.js';
+import { icon } from '../icons.js';
 
 export async function renderAddAsset(params) {
   const editId = params?.id || null;
@@ -19,7 +20,7 @@ export async function renderAddAsset(params) {
       ${renderTopbar(editId ? 'Edit Asset' : 'Add Asset')}
       <div class="page-content">
         <div class="page-header" style="display:flex;align-items:center;gap:12px">
-          <button class="btn btn-ghost btn-sm" onclick="history.back()">← Back</button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="history.back()">${icon('arrowLeft', 16)}</button>
           <div>
             <h1 class="page-title">${editId ? 'Edit Asset' : 'Add New Asset'}</h1>
             <p class="page-desc">${editId ? 'Update asset details' : 'Track a new passive income source'}</p>
@@ -27,6 +28,13 @@ export async function renderAddAsset(params) {
         </div>
 
         <div class="card" style="max-width:640px;animation:fadeInUp 0.3s ease">
+          <div id="cat-preview" style="display:flex;align-items:center;gap:14px;padding-bottom:22px;margin-bottom:22px;border-bottom:1px solid var(--border)">
+            <div class="detail-icon" id="cat-preview-icon" style="width:52px;height:52px;border-radius:14px"></div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em">${editId ? 'Editing' : 'New'} asset</div>
+              <div id="cat-preview-name" style="font-size:16px;font-weight:700;letter-spacing:-0.02em;margin-top:2px"></div>
+            </div>
+          </div>
           <form id="asset-form">
             <div class="form-group">
               <label class="form-label">Asset Name *</label>
@@ -81,9 +89,9 @@ export async function renderAddAsset(params) {
 
             <div style="display:flex;gap:10px;margin-top:8px">
               <button class="btn btn-primary btn-lg" type="submit" id="submit-btn">
-                ${editId ? '✓ Save Changes' : '+ Add Asset'}
+                ${icon(editId ? 'check' : 'plus', 17)} ${editId ? 'Save Changes' : 'Add Asset'}
               </button>
-              <button class="btn btn-secondary" type="button" onclick="history.back()">Cancel</button>
+              <button class="btn btn-secondary btn-lg" type="button" onclick="history.back()">Cancel</button>
             </div>
           </form>
         </div>
@@ -93,14 +101,23 @@ export async function renderAddAsset(params) {
 
   attachNavbarEvents();
 
-  // Show site URL field only for AdSense Site
+  // Show site URL field only for AdSense Site + live category preview
   const categoryEl = document.getElementById('category');
   const urlGroup = document.getElementById('site-url-group');
-  function toggleUrlField() {
-    urlGroup.style.display = categoryEl.value === 'AdSense Site' ? 'block' : 'none';
+  const previewIcon = document.getElementById('cat-preview-icon');
+  const previewName = document.getElementById('cat-preview-name');
+
+  function updateCategoryUI() {
+    const cat = categoryEl.value;
+    urlGroup.style.display = cat === 'AdSense Site' ? 'block' : 'none';
+    const meta = categoryMeta(cat);
+    previewIcon.style.background = meta.bg;
+    previewIcon.style.color = meta.color;
+    previewIcon.innerHTML = icon(meta.iconName, 24);
+    previewName.textContent = cat;
   }
-  toggleUrlField();
-  categoryEl.addEventListener('change', toggleUrlField);
+  updateCategoryUI();
+  categoryEl.addEventListener('change', updateCategoryUI);
 
   document.getElementById('asset-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -144,7 +161,7 @@ export async function renderAddAsset(params) {
       errEl.textContent = 'Failed to save. Please try again.';
       errEl.style.display = 'block';
       btn.disabled = false;
-      btn.textContent = editId ? '✓ Save Changes' : '+ Add Asset';
+      btn.textContent = editId ? 'Save Changes' : 'Add Asset';
     }
   });
 }

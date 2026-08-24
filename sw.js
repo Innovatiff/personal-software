@@ -1,5 +1,7 @@
 // Service worker — offline app shell + runtime caching.
-const CACHE = 'pap-v2';
+// Bump CACHE whenever the app shell (HTML/CSS/JS) changes so installed
+// apps re-fetch the updated files instead of serving a stale copy.
+const CACHE = 'pap-v3';
 const CORE = [
   './',
   './index.html',
@@ -38,17 +40,15 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Same-origin assets: stale-while-revalidate.
+  // Same-origin assets: network-first so a fresh deploy is picked up
+  // immediately when online; fall back to cache when offline.
   e.respondWith(
-    caches.match(req).then(cached => {
-      const network = fetch(req).then(res => {
-        if (res && res.status === 200) {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(req, copy));
-        }
-        return res;
-      }).catch(() => cached);
-      return cached || network;
-    })
+    fetch(req).then(res => {
+      if (res && res.status === 200) {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy));
+      }
+      return res;
+    }).catch(() => caches.match(req))
   );
 });

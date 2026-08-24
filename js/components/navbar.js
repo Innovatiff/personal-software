@@ -14,6 +14,7 @@ export function renderSidebar(activePage) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', hash: '/dashboard' },
     { id: 'businesses', label: 'Businesses', icon: 'building2', hash: '/businesses' },
+    { id: 'invoices', label: 'Invoices', icon: 'receipt', hash: '/invoices' },
     { id: 'assets', label: 'My Assets', icon: 'layers', hash: '/assets' },
     { id: 'platforms', label: 'Expenses', icon: 'server', hash: '/platforms' },
     { id: 'monthly', label: 'Monthly Overview', icon: 'wallet', hash: '/monthly' },
@@ -34,7 +35,7 @@ export function renderSidebar(activePage) {
       <div class="sidebar-header">
         <a class="sidebar-logo" href="#/dashboard">
           ${brandMark(30)}
-          <span>Passive Asset<br>Portfolio</span>
+          <span style="font-size:16px">Portfolio</span>
         </a>
       </div>
       <nav class="sidebar-nav">
@@ -70,7 +71,7 @@ function renderBottomNav(activePage) {
   const tabs = [
     { id: 'dashboard', label: 'Home', icon: 'dashboard', hash: '/dashboard' },
     { id: 'businesses', label: 'Clients', icon: 'building2', hash: '/businesses' },
-    { id: 'assets', label: 'Assets', icon: 'layers', hash: '/assets' },
+    { id: 'invoices', label: 'Invoices', icon: 'receipt', hash: '/invoices' },
     { id: 'platforms', label: 'Expenses', icon: 'server', hash: '/platforms' },
     { id: 'monthly', label: 'Monthly', icon: 'wallet', hash: '/monthly' },
   ];
@@ -87,6 +88,10 @@ function renderBottomNav(activePage) {
 export function renderTopbar(title, opts = {}) {
   const addLabel = opts.addLabel || 'Add Asset';
   const addHash = opts.addHash || '/assets/add';
+  const addBtn = opts.noAdd ? '' : `
+        <button class="btn btn-primary btn-sm" onclick="location.hash='#${addHash}'">
+          ${icon('plus', 15)} ${addLabel}
+        </button>`;
   return `
     <div class="topbar">
       <div class="topbar-left">
@@ -97,9 +102,7 @@ export function renderTopbar(title, opts = {}) {
         <button class="btn btn-secondary btn-sm" data-install style="display:none">
           ${icon('download', 15)} Install
         </button>
-        <button class="btn btn-primary btn-sm" onclick="location.hash='#${addHash}'">
-          ${icon('plus', 15)} ${addLabel}
-        </button>
+        ${addBtn}
       </div>
     </div>
   `;

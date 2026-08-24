@@ -1,5 +1,6 @@
-import { getBusinesses, deleteBusiness, updateBusiness } from '../db.js';
+import { getBusinesses, deleteBusiness, updateBusiness, getInvoices, addInvoice } from '../db.js';
 import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/navbar.js';
+import { auth } from '../firebase-config.js';
 import {
   formatCurrency, computeMRR, serviceMeta, businessStatusBadge,
   isThisMonth, BUSINESS_STATUSES, paymentInfo, ordinal,
@@ -182,12 +183,39 @@ async function markPaid(id) {
   try {
     await updateBusiness(id, upd);
     Object.assign(b, upd);
-    const p = paymentInfo(b.dueDay, b.lastPaidDate, b.createdAt);
-    toast(p.nextDue ? `Payment recorded · next due ${formatDate(p.nextDue)}` : 'Payment recorded', 'success');
-    renderList();
   } catch {
     toast('Failed to record payment', 'error');
+    return;
   }
+
+  // Auto-generate a professional invoice for this payment
+  try {
+    const existing = await getInvoices();
+    const number = 'INV-' + String(existing.length + 1).padStart(4, '0');
+    const users = Math.max(1, Number(b.users) || 1);
+    await addInvoice({
+      number,
+      businessId: b.id,
+      clientName: b.name,
+      service: b.service || '',
+      description: b.description || '',
+      period: b.period || 'Monthly',
+      price: num(b.price),
+      users,
+      amount: computeMRR(b.price, b.period, users),
+      dueDay: b.dueDay || null,
+      issueDate: todayISO(),
+      paidDate: todayISO(),
+      status: 'Paid',
+      issuerName: auth.currentUser?.displayName || '',
+      issuerEmail: auth.currentUser?.email || '',
+    });
+    toast(`Paid · invoice ${number} created`, 'success');
+  } catch (err) {
+    console.error(err);
+    toast('Payment recorded (invoice could not be created)', 'info');
+  }
+  renderList();
 }
 
 function statBox(ic, color, label, value, sub, valueClass = '') {

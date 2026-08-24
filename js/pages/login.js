@@ -10,7 +10,7 @@ export function renderLogin() {
       <div class="auth-card">
         <div class="auth-logo">
           ${brandMark(30)}
-          <span>Passive Asset Portfolio</span>
+          <span>Portfolio</span>
         </div>
         <h1 class="auth-title">Welcome back</h1>
         <p class="auth-subtitle">Sign in to track your passive income</p>

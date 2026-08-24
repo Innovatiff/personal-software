@@ -123,3 +123,33 @@ export async function updateBusiness(id, data) {
 export async function deleteBusiness(id) {
   await deleteDoc(doc(db, 'businesses', id));
 }
+
+// ─── Invoices ────────────────────────────────────────────────
+
+export async function getInvoices() {
+  const q = query(
+    collection(db, 'invoices'),
+    where('userId', '==', auth.currentUser.uid)
+  );
+  const snap = await getDocs(q);
+  return sortByCreatedAt(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+}
+
+export async function getInvoice(id) {
+  const snap = await getDoc(doc(db, 'invoices', id));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() };
+}
+
+export async function addInvoice(data) {
+  return await addDoc(collection(db, 'invoices'), {
+    ...data,
+    userId: auth.currentUser.uid,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+}
+
+export async function deleteInvoice(id) {
+  await deleteDoc(doc(db, 'invoices', id));
+}

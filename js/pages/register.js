@@ -10,7 +10,7 @@ export function renderRegister() {
       <div class="auth-card">
         <div class="auth-logo">
           ${brandMark(30)}
-          <span>Passive Asset Portfolio</span>
+          <span>Portfolio</span>
         </div>
         <h1 class="auth-title">Create account</h1>
         <p class="auth-subtitle">Start tracking your passive income today</p>

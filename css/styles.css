@@ -464,7 +464,7 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
 .topbar-title { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
 
-.page-content { padding: 32px; flex: 1; max-width: 1280px; width: 100%; }
+.page-content { padding: 32px; flex: 1; width: 100%; }
 
 .mobile-menu-btn {
   display: none;

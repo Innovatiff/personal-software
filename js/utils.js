@@ -158,39 +158,67 @@ function toISO(d) {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
-/** Advance a due date forward by one billing period. */
-export function advanceDueDate(fromISO, period) {
-  const base = parseISO(fromISO) || new Date();
-  const d = new Date(base);
-  switch (period) {
-    case 'Daily': d.setDate(d.getDate() + 1); break;
-    case 'Weekly': d.setDate(d.getDate() + 7); break;
-    case 'Bi-Weekly': d.setDate(d.getDate() + 14); break;
-    case 'Per Hour': d.setDate(d.getDate() + 1); break;
-    case 'Monthly':
-    default: d.setMonth(d.getMonth() + 1); break;
-  }
-  return toISO(d);
+/** 1 → "1st", 2 → "2nd", 29 → "29th", etc. */
+export function ordinal(n) {
+  n = Number(n);
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+/** The occurrence of a day-of-month in a given month, clamped to month length. */
+function dayOccurrence(dueDay, year, monthIndex) {
+  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+  return new Date(year, monthIndex, Math.min(dueDay, lastDay));
 }
 
 /**
- * Payment status for a due date.
- * → { key, label, cls } where key is overdue | due | ok | none
+ * Payment info for a recurring monthly due day (1–31).
+ * Uses the last-paid date and the business start date so brand-new
+ * clients aren't flagged overdue for cycles before they existed.
+ * → { key, label, cls, dueDay, nextDue, paidCurrent }
  */
-export function paymentStatus(dueISO) {
-  const due = parseISO(dueISO);
-  if (!due) return { key: 'none', label: 'No date', cls: 'pay-none' };
+export function paymentInfo(dueDay, lastPaidISO, sinceTs) {
+  dueDay = Number(dueDay);
+  if (!dueDay || dueDay < 1 || dueDay > 31) {
+    return { key: 'none', label: 'No due day', cls: 'pay-none', dueDay: null, nextDue: null };
+  }
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const diffDays = Math.round((due - today) / 86400000);
-  if (diffDays < 0) return { key: 'overdue', label: 'Overdue', cls: 'pay-overdue' };
-  if (diffDays === 0) return { key: 'due', label: 'Due today', cls: 'pay-due' };
-  if (diffDays <= 5) return { key: 'due', label: `Due in ${diffDays}d`, cls: 'pay-due' };
-  return { key: 'ok', label: 'Upcoming', cls: 'pay-ok' };
+  const y = today.getFullYear(), m = today.getMonth();
+  const thisMonthDue = dayOccurrence(dueDay, y, m);
+
+  let lastDue, upcomingDue;
+  if (today.getTime() >= thisMonthDue.getTime()) {
+    lastDue = thisMonthDue;
+    upcomingDue = dayOccurrence(dueDay, y, m + 1);
+  } else {
+    lastDue = dayOccurrence(dueDay, y, m - 1);
+    upcomingDue = thisMonthDue;
+  }
+
+  let since = null;
+  if (sinceTs) { since = sinceTs.toDate ? sinceTs.toDate() : new Date(sinceTs); since.setHours(0, 0, 0, 0); }
+  const obligated = !since || lastDue.getTime() >= since.getTime();
+
+  const lastPaid = lastPaidISO ? parseISO(lastPaidISO) : null;
+  const paidCurrent = obligated && !!lastPaid && lastPaid.getTime() >= lastDue.getTime();
+
+  const effective = (!obligated || paidCurrent) ? upcomingDue : lastDue;
+  const diff = Math.round((effective - today) / 86400000);
+
+  let st;
+  if (paidCurrent) st = { key: 'ok', label: 'Paid', cls: 'pay-ok' };
+  else if (diff < 0) st = { key: 'overdue', label: 'Overdue', cls: 'pay-overdue' };
+  else if (diff === 0) st = { key: 'due', label: 'Due today', cls: 'pay-due' };
+  else if (diff <= 5) st = { key: 'due', label: `Due in ${diff}d`, cls: 'pay-due' };
+  else st = { key: 'ok', label: 'Upcoming', cls: 'pay-ok' };
+
+  return { ...st, dueDay, nextDue: effective, paidCurrent };
 }
 
-/** Format 'YYYY-MM-DD' as 'Aug 30, 2026'. */
-export function formatShortDate(iso) {
-  const d = parseISO(iso);
+/** Format 'YYYY-MM-DD' or a Date as 'Aug 30, 2026'. */
+export function formatShortDate(value) {
+  const d = value instanceof Date ? value : parseISO(value);
   if (!d) return '—';
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }

@@ -2,8 +2,8 @@ import { getBusinesses, deleteBusiness, updateBusiness } from '../db.js';
 import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/navbar.js';
 import {
   formatCurrency, computeMRR, serviceMeta, businessStatusBadge,
-  isThisMonth, BUSINESS_STATUSES, paymentStatus, formatShortDate,
-  advanceDueDate, todayISO
+  isThisMonth, BUSINESS_STATUSES, paymentInfo, ordinal,
+  formatShortDate, formatDate, todayISO
 } from '../utils.js';
 import { icon } from '../icons.js';
 import { toast } from '../toast.js';
@@ -44,7 +44,7 @@ function renderList() {
     .reduce((s, b) => s + num(b.setupFee), 0);
   const totalThisMonth = activeMRR + setupThisMonth;
   const activeCount = _all.filter(b => b.status === 'Active').length;
-  const overdueCount = _all.filter(b => paymentStatus(b.dueDate).key === 'overdue').length;
+  const overdueCount = _all.filter(b => paymentInfo(b.dueDay, b.lastPaidDate, b.createdAt).key === 'overdue').length;
 
   let rows = _all;
   if (status !== 'All') rows = rows.filter(b => b.status === status);
@@ -125,7 +125,7 @@ function renderList() {
 function bizRow(b) {
   const meta = serviceMeta(b.service);
   const mrr = computeMRR(b.price, b.period);
-  const st = paymentStatus(b.dueDate);
+  const p = paymentInfo(b.dueDay, b.lastPaidDate, b.createdAt);
   return `
     <div class="biz-row biz-cols">
       <div class="biz-cell biz-cell-name">
@@ -153,8 +153,9 @@ function bizRow(b) {
       <div class="biz-cell" data-label="Payment">
         <span class="biz-clabel">Payment</span>
         <div style="min-width:0">
-          <div class="pay-date">${b.dueDate ? formatShortDate(b.dueDate) : '—'}</div>
-          <div class="pay-status ${st.cls}"><span class="badge-dot"></span>${st.label}</div>
+          <div class="pay-date">${b.dueDay ? 'Due ' + ordinal(b.dueDay) + ' monthly' : '—'}</div>
+          <div class="pay-status ${p.cls}"><span class="badge-dot"></span>${p.label}</div>
+          ${p.nextDue ? `<div class="pay-sub">Next: ${formatDate(p.nextDue)}</div>` : ''}
           <button class="btn btn-sm btn-paid" data-paid="${b.id}" style="margin-top:7px">${icon('check', 14)} Mark Paid</button>
           ${b.lastPaidDate ? `<div class="pay-sub">Last paid ${formatShortDate(b.lastPaidDate)}</div>` : ''}
         </div>
@@ -173,13 +174,12 @@ function bizRow(b) {
 async function markPaid(id) {
   const b = _all.find(x => x.id === id);
   if (!b) return;
-  const base = b.dueDate || todayISO();
-  const next = advanceDueDate(base, b.period);
-  const upd = { dueDate: next, lastPaidDate: todayISO(), paymentsCount: (b.paymentsCount || 0) + 1 };
+  const upd = { lastPaidDate: todayISO(), paymentsCount: (b.paymentsCount || 0) + 1 };
   try {
     await updateBusiness(id, upd);
     Object.assign(b, upd);
-    toast(`Payment recorded · next due ${formatShortDate(next)}`, 'success');
+    const p = paymentInfo(b.dueDay, b.lastPaidDate, b.createdAt);
+    toast(p.nextDue ? `Payment recorded · next due ${formatDate(p.nextDue)}` : 'Payment recorded', 'success');
     renderList();
   } catch {
     toast('Failed to record payment', 'error');

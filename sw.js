@@ -1,7 +1,7 @@
 // Service worker — offline app shell + runtime caching.
 // Bump CACHE whenever the app shell (HTML/CSS/JS) changes so installed
 // apps re-fetch the updated files instead of serving a stale copy.
-const CACHE = 'pap-v4';
+const CACHE = 'pap-v5';
 const CORE = [
   './',
   './index.html',

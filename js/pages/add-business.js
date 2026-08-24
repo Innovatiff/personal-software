@@ -80,9 +80,9 @@ export async function renderAddBusiness(params) {
                 <div class="form-hint">One-time onboarding fee</div>
               </div>
               <div class="form-group">
-                <label class="form-label">Payment Due Date</label>
-                <input class="form-control" type="date" id="dueDate" value="${existing?.dueDate || ''}" />
-                <div class="form-hint">Next payment due; advances when marked paid</div>
+                <label class="form-label">Payment Due Day</label>
+                <input class="form-control" type="number" id="dueDay" min="1" max="31" placeholder="e.g. 29" value="${existing?.dueDay ?? ''}" />
+                <div class="form-hint">Day of each month it's due (1–31)</div>
               </div>
             </div>
 
@@ -153,7 +153,7 @@ export async function renderAddBusiness(params) {
       price: parseFloat(priceEl.value) || 0,
       period: periodEl.value,
       setupFee: parseFloat(document.getElementById('setupFee').value) || 0,
-      dueDate: document.getElementById('dueDate').value || '',
+      dueDay: parseInt(document.getElementById('dueDay').value, 10) || null,
       mrr: computeMRR(priceEl.value, periodEl.value),
     };
 

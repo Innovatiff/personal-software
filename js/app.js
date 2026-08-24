@@ -11,7 +11,13 @@ import { renderSettings } from './pages/settings.js';
 import { renderPlatforms } from './pages/platforms.js';
 import { renderAddPlatform } from './pages/add-platform.js';
 import { renderMonthly } from './pages/monthly.js';
+import { renderBusinesses } from './pages/businesses.js';
+import { renderAddBusiness } from './pages/add-business.js';
 import { renderNotFound } from './pages/not-found.js';
+import { initPWA } from './pwa.js';
+
+// Register the service worker + install prompt handling (runs once)
+initPWA();
 
 // Wrap a route handler to require authentication
 function guard(fn) {
@@ -43,6 +49,9 @@ onAuthStateChanged(auth, (user) => {
       renderRegister();
     })
     .on('/dashboard', guard(renderDashboard))
+    .on('/businesses', guard(renderBusinesses))
+    .on('/businesses/add', guard(() => renderAddBusiness({})))
+    .on('/businesses/:id/edit', guard((p) => renderAddBusiness(p)))
     .on('/assets', guard(renderAssets))
     .on('/assets/add', guard(() => renderAddAsset({})))
     .on('/assets/:id', guard(renderAssetDetail))

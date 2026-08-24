@@ -86,3 +86,40 @@ export async function updatePlatform(id, data) {
 export async function deletePlatform(id) {
   await deleteDoc(doc(db, 'platforms', id));
 }
+
+// ─── Businesses (clients) ────────────────────────────────────
+
+export async function getBusinesses() {
+  const q = query(
+    collection(db, 'businesses'),
+    where('userId', '==', auth.currentUser.uid)
+  );
+  const snap = await getDocs(q);
+  return sortByCreatedAt(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+}
+
+export async function getBusiness(id) {
+  const snap = await getDoc(doc(db, 'businesses', id));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() };
+}
+
+export async function addBusiness(data) {
+  return await addDoc(collection(db, 'businesses'), {
+    ...data,
+    userId: auth.currentUser.uid,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+}
+
+export async function updateBusiness(id, data) {
+  await updateDoc(doc(db, 'businesses', id), {
+    ...data,
+    updatedAt: serverTimestamp()
+  });
+}
+
+export async function deleteBusiness(id) {
+  await deleteDoc(doc(db, 'businesses', id));
+}

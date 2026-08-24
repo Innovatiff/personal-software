@@ -83,3 +83,56 @@ export function formatDate(ts) {
   const d = ts.toDate ? ts.toDate() : new Date(ts);
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
+
+// ── Businesses (clients you provide software/websites to) ────
+
+export const SERVICES = ['Website', 'Software'];
+
+export const SERVICE_META = {
+  'Website':  { iconName: 'globe', color: '#38bdf8' },
+  'Software': { iconName: 'code',  color: '#38d996' },
+};
+export function serviceMeta(service) {
+  const m = SERVICE_META[service] || SERVICE_META['Software'];
+  return { ...m, bg: hexToRgba(m.color, 0.13) };
+}
+
+// Billing periods and how many of each occur in an average month.
+export const BUSINESS_PERIODS = ['Per Hour', 'Daily', 'Weekly', 'Bi-Weekly', 'Monthly'];
+
+export const PERIOD_TO_MONTHLY = {
+  'Per Hour': 160,      // ~ full-time billable hours per month
+  'Daily': 30.4368,     // avg days per month (365.25 / 12)
+  'Weekly': 4.348,      // avg weeks per month
+  'Bi-Weekly': 2.174,   // every two weeks
+  'Monthly': 1,
+};
+
+/** Convert a price + billing period into a monthly recurring amount (MRR). */
+export function computeMRR(price, period) {
+  const p = Number(price) || 0;
+  const mult = PERIOD_TO_MONTHLY[period] ?? 1;
+  return Math.round(p * mult * 100) / 100;
+}
+
+export const BUSINESS_STATUSES = ['Active', 'Building', 'Inactive'];
+
+const BIZ_STATUS_CLASS = {
+  'Active': 'badge-status-active',
+  'Building': 'badge-status-building',
+  'Inactive': 'badge-status-paused',
+};
+
+/** Render a business status pill. */
+export function businessStatusBadge(status) {
+  const cls = BIZ_STATUS_CLASS[status] || 'badge-status-paused';
+  return `<span class="badge ${cls}"><span class="badge-dot"></span>${status}</span>`;
+}
+
+/** True if a Firestore timestamp falls within the current calendar month. */
+export function isThisMonth(ts) {
+  if (!ts) return false;
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}

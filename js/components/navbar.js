@@ -3,6 +3,7 @@ import { signOut } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-aut
 import { router } from '../router.js';
 import { toast } from '../toast.js';
 import { icon, brandMark } from '../icons.js';
+import { wireInstallButtons } from '../pwa.js';
 
 export function renderSidebar(activePage) {
   const user = auth.currentUser;
@@ -12,9 +13,9 @@ export function renderSidebar(activePage) {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', hash: '/dashboard' },
+    { id: 'businesses', label: 'Businesses', icon: 'building2', hash: '/businesses' },
     { id: 'assets', label: 'My Assets', icon: 'layers', hash: '/assets' },
-    { id: 'add', label: 'Add Asset', icon: 'plus', hash: '/assets/add' },
-    { id: 'platforms', label: 'Platforms', icon: 'server', hash: '/platforms' },
+    { id: 'platforms', label: 'Expenses', icon: 'server', hash: '/platforms' },
     { id: 'monthly', label: 'Monthly Overview', icon: 'wallet', hash: '/monthly' },
   ];
 
@@ -47,6 +48,9 @@ export function renderSidebar(activePage) {
         </button>
       </nav>
       <div class="sidebar-footer">
+        <button class="install-btn" data-install>
+          ${icon('download', 16)} Install app
+        </button>
         <div class="user-info" onclick="location.hash='#/settings'">
           <div class="user-avatar">${initial}</div>
           <div class="user-details">
@@ -60,7 +64,9 @@ export function renderSidebar(activePage) {
   `;
 }
 
-export function renderTopbar(title) {
+export function renderTopbar(title, opts = {}) {
+  const addLabel = opts.addLabel || 'Add Asset';
+  const addHash = opts.addHash || '/assets/add';
   return `
     <div class="topbar">
       <div class="topbar-left">
@@ -68,8 +74,11 @@ export function renderTopbar(title) {
         <div class="topbar-title">${title}</div>
       </div>
       <div class="topbar-right">
-        <button class="btn btn-primary btn-sm" onclick="location.hash='#/assets/add'">
-          ${icon('plus', 15)} Add Asset
+        <button class="btn btn-secondary btn-sm" data-install style="display:none">
+          ${icon('download', 15)} Install
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="location.hash='#${addHash}'">
+          ${icon('plus', 15)} ${addLabel}
         </button>
       </div>
     </div>
@@ -100,4 +109,7 @@ export function attachNavbarEvents() {
       overlay.classList.remove('open');
     });
   }
+
+  // Show/wire the "Install app" buttons if the browser allows installation
+  wireInstallButtons();
 }

@@ -108,11 +108,15 @@ export const PERIOD_TO_MONTHLY = {
   'Monthly': 1,
 };
 
-/** Convert a price + billing period into a monthly recurring amount (MRR). */
-export function computeMRR(price, period) {
+/**
+ * Convert price × users × billing period into a monthly recurring amount.
+ * `users` defaults to 1, so flat-priced businesses behave as before.
+ */
+export function computeMRR(price, period, users = 1) {
   const p = Number(price) || 0;
+  const u = Math.max(1, Number(users) || 1);
   const mult = PERIOD_TO_MONTHLY[period] ?? 1;
-  return Math.round(p * mult * 100) / 100;
+  return Math.round(p * u * mult * 100) / 100;
 }
 
 export const BUSINESS_STATUSES = ['Active', 'Building', 'Inactive'];

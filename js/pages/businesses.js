@@ -39,7 +39,7 @@ function renderList() {
   const { status, search } = _state;
 
   const activeMRR = _all.filter(b => b.status === 'Active')
-    .reduce((s, b) => s + computeMRR(b.price, b.period), 0);
+    .reduce((s, b) => s + computeMRR(b.price, b.period, b.users), 0);
   const setupThisMonth = _all.filter(b => isThisMonth(b.createdAt))
     .reduce((s, b) => s + num(b.setupFee), 0);
   const totalThisMonth = activeMRR + setupThisMonth;
@@ -124,7 +124,8 @@ function renderList() {
 
 function bizRow(b) {
   const meta = serviceMeta(b.service);
-  const mrr = computeMRR(b.price, b.period);
+  const users = Math.max(1, Number(b.users) || 1);
+  const mrr = computeMRR(b.price, b.period, users);
   const p = paymentInfo(b.dueDay, b.lastPaidDate, b.createdAt);
   return `
     <div class="biz-row biz-cols">
@@ -140,7 +141,10 @@ function bizRow(b) {
       </div>
       <div class="biz-cell" data-label="Price">
         <span class="biz-clabel">Price</span>
-        <span class="biz-price num">${formatCurrency(num(b.price))}</span>
+        <div style="min-width:0">
+          <span class="biz-price num">${formatCurrency(num(b.price))}</span>
+          ${users > 1 ? `<div class="pay-sub">× ${users} users</div>` : ''}
+        </div>
       </div>
       <div class="biz-cell" data-label="Period">
         <span class="biz-clabel">Period</span>

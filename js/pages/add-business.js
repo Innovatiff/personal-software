@@ -62,28 +62,35 @@ export async function renderAddBusiness(params) {
 
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Price ($) *</label>
+                <label class="form-label">Price per user ($) *</label>
                 <input class="form-control" type="number" id="price" placeholder="0.00" min="0" step="0.01" required value="${existing?.price ?? ''}" />
+                <div class="form-hint">Charge per user, per period</div>
               </div>
+              <div class="form-group">
+                <label class="form-label">Users</label>
+                <input class="form-control" type="number" id="users" min="1" step="1" placeholder="1" value="${existing?.users ?? 1}" />
+                <div class="form-hint">Set to 1 for flat pricing</div>
+              </div>
+            </div>
+
+            <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Billing Period *</label>
                 <select class="form-control" id="period" required>
                   ${BUSINESS_PERIODS.map(p => `<option value="${p}" ${(existing?.period || 'Monthly') === p ? 'selected' : ''}>${p}</option>`).join('')}
                 </select>
               </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Setup Fee ($)</label>
-                <input class="form-control" type="number" id="setupFee" placeholder="0.00" min="0" step="0.01" value="${existing?.setupFee ?? ''}" />
-                <div class="form-hint">One-time onboarding fee</div>
-              </div>
               <div class="form-group">
                 <label class="form-label">Payment Due Day</label>
                 <input class="form-control" type="number" id="dueDay" min="1" max="31" placeholder="e.g. 29" value="${existing?.dueDay ?? ''}" />
                 <div class="form-hint">Day of each month it's due (1–31)</div>
               </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Setup Fee ($)</label>
+              <input class="form-control" type="number" id="setupFee" placeholder="0.00" min="0" step="0.01" value="${existing?.setupFee ?? ''}" />
+              <div class="form-hint">One-time onboarding fee</div>
             </div>
 
             <div class="form-group">
@@ -114,6 +121,7 @@ export async function renderAddBusiness(params) {
 
   const serviceEl = document.getElementById('service');
   const priceEl = document.getElementById('price');
+  const usersEl = document.getElementById('users');
   const periodEl = document.getElementById('period');
   const svcIcon = document.getElementById('svc-icon');
   const svcName = document.getElementById('svc-name');
@@ -127,16 +135,17 @@ export async function renderAddBusiness(params) {
     svcIcon.innerHTML = icon(meta.iconName, 24);
     svcName.textContent = serviceEl.value;
 
-    const mrr = computeMRR(priceEl.value, periodEl.value);
-    mrrValue.textContent = formatCurrency(mrr);
+    const price = Number(priceEl.value) || 0;
+    const users = Math.max(1, parseInt(usersEl.value, 10) || 1);
     const period = periodEl.value;
-    mrrNote.textContent = period === 'Monthly'
-      ? 'Same as the monthly price'
-      : `Estimated from ${formatCurrency(Number(priceEl.value) || 0)} ${period.toLowerCase()}`;
+    mrrValue.textContent = formatCurrency(computeMRR(price, period, users));
+    const seats = users > 1 ? `${users} users × ` : '';
+    mrrNote.textContent = `${seats}${formatCurrency(price)} ${period.toLowerCase()}`;
   }
   updatePreview();
   serviceEl.addEventListener('change', updatePreview);
   priceEl.addEventListener('input', updatePreview);
+  usersEl.addEventListener('input', updatePreview);
   periodEl.addEventListener('change', updatePreview);
 
   document.getElementById('biz-form').addEventListener('submit', async (e) => {
@@ -151,10 +160,11 @@ export async function renderAddBusiness(params) {
       status: document.getElementById('status').value,
       description: document.getElementById('description').value.trim(),
       price: parseFloat(priceEl.value) || 0,
+      users: Math.max(1, parseInt(usersEl.value, 10) || 1),
       period: periodEl.value,
       setupFee: parseFloat(document.getElementById('setupFee').value) || 0,
       dueDay: parseInt(document.getElementById('dueDay').value, 10) || null,
-      mrr: computeMRR(priceEl.value, periodEl.value),
+      mrr: computeMRR(priceEl.value, periodEl.value, Math.max(1, parseInt(usersEl.value, 10) || 1)),
     };
 
     if (!data.name) {

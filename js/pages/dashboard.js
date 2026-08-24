@@ -53,7 +53,7 @@ function headerHtml() {
 
 function build(businesses, assets, platforms) {
   const activeBiz = businesses.filter(b => b.status === 'Active');
-  const activeMRR = activeBiz.reduce((s, b) => s + computeMRR(b.price, b.period), 0);
+  const activeMRR = activeBiz.reduce((s, b) => s + computeMRR(b.price, b.period, b.users), 0);
   const setupThisMonth = businesses.filter(b => isThisMonth(b.createdAt)).reduce((s, b) => s + num(b.setupFee), 0);
   const totalThisMonth = activeMRR + setupThisMonth;
   const yearly = activeMRR * 12;
@@ -69,7 +69,7 @@ function build(businesses, assets, platforms) {
 
   // top clients by MRR (for bars)
   const ranked = [...businesses]
-    .map(b => ({ ...b, _mrr: computeMRR(b.price, b.period) }))
+    .map(b => ({ ...b, _mrr: computeMRR(b.price, b.period, b.users) }))
     .filter(b => b._mrr > 0)
     .sort((a, b) => b._mrr - a._mrr);
   const topBars = ranked.slice(0, 7);
@@ -231,7 +231,7 @@ function statusBreakdown(counts, total) {
 
 function recentItem(b) {
   const meta = serviceMeta(b.service);
-  const mrr = computeMRR(b.price, b.period);
+  const mrr = computeMRR(b.price, b.period, b.users);
   return `
     <a class="mini-item" href="#/businesses/${b.id}/edit">
       <div class="mini-avatar" style="background:${meta.bg};color:${meta.color}">${icon(meta.iconName, 19)}</div>

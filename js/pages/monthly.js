@@ -33,7 +33,7 @@ function build(assets, platforms, businesses) {
   // Recurring earnings = active business MRR + asset monthly income
   const bizItems = businesses
     .filter(b => b.status === 'Active')
-    .map(b => ({ name: b.name, amount: computeMRR(b.price, b.period), meta: serviceMeta(b.service), group: b.service }))
+    .map(b => ({ name: b.name, amount: computeMRR(b.price, b.period, b.users), meta: serviceMeta(b.service), group: b.service }))
     .filter(x => x.amount > 0);
   const assetItems = assets
     .map(a => ({ name: a.name, amount: num(a.monthlyIncome), meta: categoryMeta(a.category), group: a.category }))

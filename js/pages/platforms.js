@@ -32,11 +32,11 @@ export async function renderPlatforms() {
   app.innerHTML = `
     ${renderSidebar('platforms')}
     <div class="main-content">
-      ${renderTopbar('Platforms')}
+      ${renderTopbar('Expenses', { addLabel: 'Add Platform', addHash: '/platforms/add' })}
       <div class="page-content">
         <div class="page-header">
-          <h1 class="page-title">Platforms</h1>
-          <p class="page-desc">Tools & services powering your passive assets</p>
+          <h1 class="page-title">Expenses</h1>
+          <p class="page-desc">Platforms & services powering your assets</p>
         </div>
         <div class="stats-grid">${Array(3).fill('<div class="skeleton skeleton-card"></div>').join('')}</div>
         <div class="assets-grid">${Array(3).fill('<div class="skeleton skeleton-card" style="height:150px"></div>').join('')}</div>
@@ -60,12 +60,9 @@ function buildPlatformsPage(platforms, activeFilter) {
 
   const content = document.querySelector('.page-content');
   content.innerHTML = `
-    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
-      <div>
-        <h1 class="page-title">Platforms</h1>
-        <p class="page-desc">Tools &amp; services powering your passive assets</p>
-      </div>
-      <a href="#/platforms/add" class="btn btn-primary">${icon('plus', 16)} Add Platform</a>
+    <div class="page-header">
+      <h1 class="page-title">Expenses</h1>
+      <p class="page-desc">Platforms &amp; services powering your assets</p>
     </div>
 
     <div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">

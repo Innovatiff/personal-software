@@ -61,7 +61,27 @@ export function renderSidebar(activePage) {
       </div>
     </aside>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    ${renderBottomNav(activePage)}
   `;
+}
+
+// Fixed bottom tab bar shown on phones for an app-like feel.
+function renderBottomNav(activePage) {
+  const tabs = [
+    { id: 'dashboard', label: 'Home', icon: 'dashboard', hash: '/dashboard' },
+    { id: 'businesses', label: 'Clients', icon: 'building2', hash: '/businesses' },
+    { id: 'assets', label: 'Assets', icon: 'layers', hash: '/assets' },
+    { id: 'platforms', label: 'Expenses', icon: 'server', hash: '/platforms' },
+    { id: 'monthly', label: 'Monthly', icon: 'wallet', hash: '/monthly' },
+  ];
+  return `
+    <nav class="bottom-nav">
+      ${tabs.map(t => `
+        <a class="bottom-nav-item ${activePage === t.id ? 'active' : ''}" href="#${t.hash}">
+          <span class="bottom-nav-icon">${icon(t.icon, 21)}</span>
+          <span class="bottom-nav-label">${t.label}</span>
+        </a>`).join('')}
+    </nav>`;
 }
 
 export function renderTopbar(title, opts = {}) {

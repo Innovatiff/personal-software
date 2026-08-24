@@ -136,3 +136,61 @@ export function isThisMonth(ts) {
   const now = new Date();
   return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
 }
+
+// ── Payment due-date tracking ────────────────────────────────
+
+/** Today as a 'YYYY-MM-DD' string (local time). */
+export function todayISO() {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+function parseISO(iso) {
+  if (!iso) return null;
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+function toISO(d) {
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/** Advance a due date forward by one billing period. */
+export function advanceDueDate(fromISO, period) {
+  const base = parseISO(fromISO) || new Date();
+  const d = new Date(base);
+  switch (period) {
+    case 'Daily': d.setDate(d.getDate() + 1); break;
+    case 'Weekly': d.setDate(d.getDate() + 7); break;
+    case 'Bi-Weekly': d.setDate(d.getDate() + 14); break;
+    case 'Per Hour': d.setDate(d.getDate() + 1); break;
+    case 'Monthly':
+    default: d.setMonth(d.getMonth() + 1); break;
+  }
+  return toISO(d);
+}
+
+/**
+ * Payment status for a due date.
+ * → { key, label, cls } where key is overdue | due | ok | none
+ */
+export function paymentStatus(dueISO) {
+  const due = parseISO(dueISO);
+  if (!due) return { key: 'none', label: 'No date', cls: 'pay-none' };
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((due - today) / 86400000);
+  if (diffDays < 0) return { key: 'overdue', label: 'Overdue', cls: 'pay-overdue' };
+  if (diffDays === 0) return { key: 'due', label: 'Due today', cls: 'pay-due' };
+  if (diffDays <= 5) return { key: 'due', label: `Due in ${diffDays}d`, cls: 'pay-due' };
+  return { key: 'ok', label: 'Upcoming', cls: 'pay-ok' };
+}
+
+/** Format 'YYYY-MM-DD' as 'Aug 30, 2026'. */
+export function formatShortDate(iso) {
+  const d = parseISO(iso);
+  if (!d) return '—';
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}

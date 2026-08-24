@@ -1,8 +1,9 @@
-import { getBusinesses, deleteBusiness } from '../db.js';
+import { getBusinesses, deleteBusiness, updateBusiness } from '../db.js';
 import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/navbar.js';
 import {
   formatCurrency, computeMRR, serviceMeta, businessStatusBadge,
-  isThisMonth, BUSINESS_STATUSES
+  isThisMonth, BUSINESS_STATUSES, paymentStatus, formatShortDate,
+  advanceDueDate, todayISO
 } from '../utils.js';
 import { icon } from '../icons.js';
 import { toast } from '../toast.js';
@@ -23,7 +24,7 @@ export async function renderBusinesses() {
           <h1 class="page-title">Businesses</h1>
           <p class="page-desc">Clients you provide websites &amp; software to</p>
         </div>
-        <div class="stats-grid">${Array(4).fill('<div class="skeleton skeleton-card"></div>').join('')}</div>
+        <div class="stats-grid">${Array(5).fill('<div class="skeleton skeleton-card"></div>').join('')}</div>
         <div class="biz-table">${Array(4).fill('<div class="skeleton" style="height:64px;border-radius:var(--radius)"></div>').join('')}</div>
       </div>
     </div>
@@ -37,13 +38,13 @@ export async function renderBusinesses() {
 function renderList() {
   const { status, search } = _state;
 
-  // Totals (recurring MRR counts Active clients only)
   const activeMRR = _all.filter(b => b.status === 'Active')
     .reduce((s, b) => s + computeMRR(b.price, b.period), 0);
   const setupThisMonth = _all.filter(b => isThisMonth(b.createdAt))
     .reduce((s, b) => s + num(b.setupFee), 0);
   const totalThisMonth = activeMRR + setupThisMonth;
   const activeCount = _all.filter(b => b.status === 'Active').length;
+  const overdueCount = _all.filter(b => paymentStatus(b.dueDate).key === 'overdue').length;
 
   let rows = _all;
   if (status !== 'All') rows = rows.filter(b => b.status === status);
@@ -60,19 +61,17 @@ function renderList() {
 
   const content = document.querySelector('.page-content');
   content.innerHTML = `
-    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
-      <div>
-        <h1 class="page-title">Businesses</h1>
-        <p class="page-desc">${_all.length} client${_all.length !== 1 ? 's' : ''} · ${activeCount} active</p>
-      </div>
-      <a href="#/businesses/add" class="btn btn-primary">${icon('plus', 16)} Add Business</a>
+    <div class="page-header">
+      <h1 class="page-title">Businesses</h1>
+      <p class="page-desc">${_all.length} client${_all.length !== 1 ? 's' : ''} · ${activeCount} active</p>
     </div>
 
-    <div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
       ${statBox('building2', 'purple', 'Total Businesses', _all.length, `${activeCount} active`)}
       ${statBox('trendingUp', 'green', 'Recurring MRR', formatCurrency(activeMRR), 'Active clients / month', 'green')}
       ${statBox('receipt', 'yellow', 'Setup Fees', formatCurrency(setupThisMonth), 'Collected this month')}
       ${statBox('wallet', 'green', 'Total This Month', formatCurrency(totalThisMonth), 'MRR + setup fees', 'accent')}
+      ${statBox(overdueCount ? 'alert' : 'check', overdueCount ? 'red' : 'green', 'Overdue Payments', overdueCount, overdueCount ? 'Need collecting' : 'All up to date', overdueCount ? '' : 'green')}
     </div>
 
     <div class="filters-bar">
@@ -92,10 +91,10 @@ function renderList() {
           <div class="biz-row biz-head biz-cols">
             <div class="biz-cell">Business</div>
             <div class="biz-cell">Service</div>
-            <div class="biz-cell">Description</div>
             <div class="biz-cell">Price</div>
             <div class="biz-cell">Period</div>
             <div class="biz-cell">MRR</div>
+            <div class="biz-cell">Payment</div>
             <div class="biz-cell">Status</div>
             <div class="biz-cell" style="text-align:right">Actions</div>
           </div>
@@ -105,7 +104,6 @@ function renderList() {
     `}
   `;
 
-  // events
   content.querySelectorAll('.filter-chip').forEach(btn => {
     btn.addEventListener('click', () => { _state.status = btn.dataset.status; renderList(); });
   });
@@ -116,17 +114,18 @@ function renderList() {
     const len = searchEl.value.length;
     searchEl.setSelectionRange(len, len);
   }
+  content.querySelectorAll('[data-paid]').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); markPaid(btn.dataset.paid); });
+  });
   content.querySelectorAll('[data-del]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      confirmDelete(btn.dataset.del, btn.dataset.name);
-    });
+    btn.addEventListener('click', (e) => { e.stopPropagation(); confirmDelete(btn.dataset.del, btn.dataset.name); });
   });
 }
 
 function bizRow(b) {
   const meta = serviceMeta(b.service);
   const mrr = computeMRR(b.price, b.period);
+  const st = paymentStatus(b.dueDate);
   return `
     <div class="biz-row biz-cols">
       <div class="biz-cell biz-cell-name">
@@ -138,10 +137,6 @@ function bizRow(b) {
       <div class="biz-cell" data-label="Service">
         <span class="biz-clabel">Service</span>
         <span class="biz-service" style="color:${meta.color}">${icon(meta.iconName, 14)} ${b.service || '—'}</span>
-      </div>
-      <div class="biz-cell" data-label="Description">
-        <span class="biz-clabel">Description</span>
-        <span class="biz-desc">${escHtml(b.description) || '<span style="color:var(--text-muted)">—</span>'}</span>
       </div>
       <div class="biz-cell" data-label="Price">
         <span class="biz-clabel">Price</span>
@@ -155,6 +150,15 @@ function bizRow(b) {
         <span class="biz-clabel">MRR</span>
         <span class="biz-mrr num">${formatCurrency(mrr)}</span>
       </div>
+      <div class="biz-cell" data-label="Payment">
+        <span class="biz-clabel">Payment</span>
+        <div style="min-width:0">
+          <div class="pay-date">${b.dueDate ? formatShortDate(b.dueDate) : '—'}</div>
+          <div class="pay-status ${st.cls}"><span class="badge-dot"></span>${st.label}</div>
+          <button class="btn btn-sm btn-paid" data-paid="${b.id}" style="margin-top:7px">${icon('check', 14)} Mark Paid</button>
+          ${b.lastPaidDate ? `<div class="pay-sub">Last paid ${formatShortDate(b.lastPaidDate)}</div>` : ''}
+        </div>
+      </div>
       <div class="biz-cell" data-label="Status">
         <span class="biz-clabel">Status</span>
         ${businessStatusBadge(b.status)}
@@ -164,6 +168,22 @@ function bizRow(b) {
         <button class="btn btn-danger btn-sm btn-icon" data-del="${b.id}" data-name="${escAttr(b.name)}" title="Delete">${icon('trash', 15)}</button>
       </div>
     </div>`;
+}
+
+async function markPaid(id) {
+  const b = _all.find(x => x.id === id);
+  if (!b) return;
+  const base = b.dueDate || todayISO();
+  const next = advanceDueDate(base, b.period);
+  const upd = { dueDate: next, lastPaidDate: todayISO(), paymentsCount: (b.paymentsCount || 0) + 1 };
+  try {
+    await updateBusiness(id, upd);
+    Object.assign(b, upd);
+    toast(`Payment recorded · next due ${formatShortDate(next)}`, 'success');
+    renderList();
+  } catch {
+    toast('Failed to record payment', 'error');
+  }
 }
 
 function statBox(ic, color, label, value, sub, valueClass = '') {

@@ -47,7 +47,6 @@ function headerHtml() {
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <a href="#/businesses" class="btn btn-secondary">${icon('building2', 16)} View Clients</a>
-        <a href="#/businesses/add" class="btn btn-primary">${icon('plus', 16)} Add Business</a>
       </div>
     </div>`;
 }

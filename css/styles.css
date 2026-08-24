@@ -4,23 +4,23 @@
    ============================================================ */
 
 :root {
-  /* Surfaces — layered near-black with a cool undertone */
-  --bg-primary: #08080c;
-  --bg-secondary: #0d0e13;
-  --bg-card: #121319;
-  --bg-card-hover: #171821;
-  --bg-input: #0e0f14;
-  --bg-elevated: #16171f;
+  /* Surfaces — dark slate with a cool undertone (lifted off pure black) */
+  --bg-primary: #0e1116;
+  --bg-secondary: #141922;
+  --bg-card: #1a2029;
+  --bg-card-hover: #212836;
+  --bg-input: #141a23;
+  --bg-elevated: #1f2735;
 
-  /* Hairline borders */
-  --border: rgba(255, 255, 255, 0.07);
-  --border-light: rgba(255, 255, 255, 0.12);
-  --border-strong: rgba(255, 255, 255, 0.16);
+  /* Hairline borders (a touch brighter for definition) */
+  --border: rgba(255, 255, 255, 0.09);
+  --border-light: rgba(255, 255, 255, 0.15);
+  --border-strong: rgba(255, 255, 255, 0.20);
 
   /* Text */
-  --text-primary: #ececef;
-  --text-secondary: #9a9aa8;
-  --text-muted: #62636f;
+  --text-primary: #f1f3f6;
+  --text-secondary: #a6abb8;
+  --text-muted: #6d7382;
 
   /* Brand accent — Donezo green */
   --accent: #1ea672;
@@ -1065,7 +1065,9 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
   .mobile-menu-btn { display: flex; }
   .main-content { margin-left: 0; }
   .topbar { padding: 0 18px; padding-top: env(safe-area-inset-top, 0px); }
-  .page-content { padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+  .page-content { padding: 20px; padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+  /* App-like bottom tab bar replaces the drawer as primary nav on phones */
+  .bottom-nav { display: flex; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .assets-grid { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
@@ -1226,10 +1228,10 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
    EXCEL-STYLE BUSINESS TABLE
    ============================================================ */
 .table-scroll { overflow-x: auto; padding-bottom: 4px; }
-.biz-table { display: flex; flex-direction: column; gap: 8px; min-width: 880px; }
+.biz-table { display: flex; flex-direction: column; gap: 8px; min-width: 1000px; }
 .biz-cols {
   display: grid;
-  grid-template-columns: 1.6fr 1fr 1.9fr 1fr 1.1fr 1fr 1fr 82px;
+  grid-template-columns: 1.5fr 0.85fr 0.8fr 0.85fr 0.9fr 1.7fr 0.85fr 78px;
   gap: 14px;
   align-items: center;
 }
@@ -1310,6 +1312,63 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
 }
 .install-btn.show { display: flex; }
 .install-btn:hover { background: rgba(30,166,114,0.2); }
+
+/* ============================================================
+   PAYMENT TRACKING (businesses)
+   ============================================================ */
+.pay-status { display: flex; width: fit-content; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; margin-top: 3px; }
+.pay-status .badge-dot { width: 6px; height: 6px; }
+.pay-overdue { color: var(--red); }
+.pay-due { color: var(--yellow); }
+.pay-ok { color: var(--green); }
+.pay-none { color: var(--text-muted); }
+.pay-date { font-size: 13px; font-weight: 600; }
+.pay-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+.btn-paid {
+  background: var(--green-soft);
+  color: var(--green);
+  border: 1px solid rgba(52,211,153,0.28);
+}
+.btn-paid:hover { background: rgba(52,211,153,0.2); border-color: rgba(52,211,153,0.5); }
+
+/* ============================================================
+   MOBILE BOTTOM TAB BAR (app-like)
+   ============================================================ */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 90;
+  background: rgba(20, 25, 34, 0.92);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-top: 1px solid var(--border);
+  padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px));
+  justify-content: space-around;
+  align-items: stretch;
+}
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 2px;
+  text-decoration: none;
+  color: var(--text-muted);
+  transition: var(--transition);
+  border-radius: 12px;
+}
+.bottom-nav-item.active { color: var(--accent-light); }
+.bottom-nav-icon { display: flex; align-items: center; justify-content: center; height: 22px; }
+.bottom-nav-item.active .bottom-nav-icon {
+  background: var(--purple-soft);
+  border-radius: 10px;
+  padding: 4px 14px;
+  box-shadow: 0 2px 10px -2px var(--accent-glow);
+}
+.bottom-nav-label { font-size: 10.5px; font-weight: 600; letter-spacing: -0.01em; }
 
 /* ============================================================
    RESPONSIVE — new components

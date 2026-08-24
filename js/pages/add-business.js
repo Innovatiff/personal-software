@@ -73,10 +73,17 @@ export async function renderAddBusiness(params) {
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">Setup Fee ($)</label>
-              <input class="form-control" type="number" id="setupFee" placeholder="0.00" min="0" step="0.01" value="${existing?.setupFee ?? ''}" />
-              <div class="form-hint">One-time onboarding fee (counts toward this month's total)</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Setup Fee ($)</label>
+                <input class="form-control" type="number" id="setupFee" placeholder="0.00" min="0" step="0.01" value="${existing?.setupFee ?? ''}" />
+                <div class="form-hint">One-time onboarding fee</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Payment Due Date</label>
+                <input class="form-control" type="date" id="dueDate" value="${existing?.dueDate || ''}" />
+                <div class="form-hint">Next payment due; advances when marked paid</div>
+              </div>
             </div>
 
             <div class="form-group">
@@ -146,6 +153,7 @@ export async function renderAddBusiness(params) {
       price: parseFloat(priceEl.value) || 0,
       period: periodEl.value,
       setupFee: parseFloat(document.getElementById('setupFee').value) || 0,
+      dueDate: document.getElementById('dueDate').value || '',
       mrr: computeMRR(priceEl.value, periodEl.value),
     };
 

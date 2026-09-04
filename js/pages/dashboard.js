@@ -2,7 +2,7 @@ import { getBusinesses, getAssets, getPlatforms } from '../db.js';
 import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/navbar.js';
 import { auth } from '../firebase-config.js';
 import {
-  formatCurrency, computeMRR, serviceMeta, businessStatusBadge,
+  formatCurrency, formatCompact, computeMRR, serviceMeta, businessStatusBadge,
   isThisMonth, BUSINESS_STATUSES
 } from '../utils.js';
 import { icon } from '../icons.js';
@@ -102,17 +102,17 @@ function build(businesses, assets, platforms) {
             <div class="section-sub">Monthly recurring revenue by client</div>
           </div>
         </div>
-        ${topBars.length ? revBars(topBars, maxMRR, activeMRR) : miniEmpty('barChart', 'No revenue yet')}
+        ${topBars.length ? revBars(topBars, maxMRR) : miniEmpty('barChart', 'No revenue yet')}
       </div>
 
       <!-- This month -->
-      <div class="best-asset-card" style="display:flex;flex-direction:column">
+      <div class="best-asset-card tm-card">
         <div class="best-asset-label">${icon('wallet', 14)} This Month</div>
-        <div class="best-asset-income" style="font-size:32px" data-count="${totalThisMonth}" data-fmt="cur">${formatCurrency(totalThisMonth)}</div>
-        <div style="margin:16px 0 14px;display:flex;flex-direction:column;gap:10px">
+        <div class="best-asset-income" data-count="${totalThisMonth}" data-fmt="cur">${formatCurrency(totalThisMonth)}</div>
+        <div class="tm-lines">
           ${lineItem('Recurring MRR', formatCurrency(activeMRR))}
           ${lineItem('Setup fees', formatCurrency(setupThisMonth))}
-          ${lineItem('Net (incl. assets − expenses)', formatCurrency(netThisMonth), netThisMonth >= 0 ? 'var(--green)' : 'var(--red)')}
+          ${lineItem('Net this month', formatCurrency(netThisMonth), netThisMonth >= 0 ? 'var(--green)' : 'var(--red)')}
         </div>
         ${goalHtml(totalThisMonth)}
         <a href="#/businesses/add" class="btn btn-primary btn-full" style="margin-top:auto">${icon('plus', 16)} Add Business</a>
@@ -200,12 +200,10 @@ function goalHtml(total) {
   }
   const pct = Math.min(100, Math.round((total / goal) * 100));
   return `
-    <div style="margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
-        <button class="btn btn-ghost btn-sm" id="goal-btn" style="padding:2px 4px;font-size:12px;gap:5px">
-          ${icon('target', 13)} Goal ${formatCurrency(goal)}
-        </button>
-        <span class="num" style="font-size:12px;font-weight:750;color:${pct >= 100 ? 'var(--green)' : 'var(--accent-light)'}">${pct}%${pct >= 100 ? ' 🎉' : ''}</span>
+    <div class="goal-box" id="goal-btn" title="Tap to edit goal">
+      <div class="goal-head">
+        <span class="goal-name">${icon('target', 13)} Goal ${formatCurrency(goal)}</span>
+        <span class="goal-pct num" style="color:${pct >= 100 ? 'var(--green)' : 'var(--accent-light)'}">${pct}%${pct >= 100 ? ' 🎉' : ''}</span>
       </div>
       <div class="bar-track" style="height:8px">
         <div class="bar-fill" style="width:0%;background:linear-gradient(90deg,var(--accent-light),var(--accent))" data-w="${pct}"></div>
@@ -265,20 +263,17 @@ function kpiCard({ feature, label, value, sub, chip, arrow }) {
     </div>`;
 }
 
-function revBars(bars, maxMRR, totalMRR) {
+function revBars(bars, maxMRR) {
   return `
     <div class="revbars">
       ${bars.map((b, i) => {
-        const h = maxMRR ? Math.max(8, (b._mrr / maxMRR) * 100) : 8;
-        const isTop = i === 0;
-        const cls = isTop ? 'hi' : (i % 2 === 0 ? '' : 'striped');
-        const share = totalMRR ? Math.round((b._mrr / totalMRR) * 100) : 0;
+        const h = maxMRR ? Math.max(10, (b._mrr / maxMRR) * 100) : 10;
+        const cls = i === 0 ? 'hi' : (i % 2 === 0 ? '' : 'striped');
         return `
           <div class="revbar-col" title="${escAttr(b.name)} · ${formatCurrency(b._mrr)}/mo">
-            <div class="revbar ${cls}" style="height:8%" data-h="${h}">
-              ${isTop ? `<div class="revbar-pill">${share}%</div>` : ''}
-            </div>
-            <div class="revbar-label">${escHtml(shortName(b.name))}</div>
+            <div class="revbar-amt num">${formatCompact(b._mrr)}</div>
+            <div class="revbar ${cls}" style="height:8%" data-h="${h}"></div>
+            <div class="revbar-label">${escHtml(firstWord(b.name))}</div>
           </div>`;
       }).join('')}
     </div>`;
@@ -350,11 +345,9 @@ function miniEmpty(ic, msg) {
 
 // helpers
 const num = (v) => Number(v) || 0;
-function shortName(name) {
+function firstWord(name) {
   if (!name) return '—';
-  const words = name.trim().split(/\s+/);
-  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
-  return name.slice(0, 6);
+  return name.trim().split(/\s+/)[0];
 }
 function escHtml(str) {
   if (!str) return '';

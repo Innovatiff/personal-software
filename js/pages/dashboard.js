@@ -271,7 +271,7 @@ function revBars(bars, maxMRR) {
         const cls = i === 0 ? 'hi' : (i % 2 === 0 ? '' : 'striped');
         return `
           <div class="revbar-col" title="${escAttr(b.name)} · ${formatCurrency(b._mrr)}/mo">
-            <div class="revbar-amt num">${formatCompact(b._mrr)}</div>
+            <div class="revbar-amt num">${b._mrr >= 1000 ? formatCompact(b._mrr) : formatCurrency(Math.round(b._mrr))}</div>
             <div class="revbar ${cls}" style="height:8%" data-h="${h}"></div>
             <div class="revbar-label">${escHtml(firstWord(b.name))}</div>
           </div>`;

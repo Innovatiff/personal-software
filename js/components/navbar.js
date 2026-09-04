@@ -121,7 +121,7 @@ export function renderTopbar(title, opts = {}) {
   const addHash = opts.addHash || '/assets/add';
   const addBtn = opts.noAdd ? '' : `
         <button class="btn btn-primary btn-sm" onclick="location.hash='#${addHash}'">
-          ${icon('plus', 15)} ${addLabel}
+          ${icon('plus', 15)} <span class="add-label">${addLabel}</span>
         </button>`;
   return `
     <div class="topbar">

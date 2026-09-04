@@ -164,7 +164,7 @@ function build(businesses, assets, platforms) {
     </div>
 
     <!-- Portfolio tie-in -->
-    <div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-top:8px">
+    <div class="stats-grid" style="margin-top:8px">
       ${snapshot('layers', 'purple', 'Assets', `${assets.length}`, `${formatCurrency(assetMonthly)} / mo income`, '/assets')}
       ${snapshot('server', 'red', 'Expenses', `${platforms.length}`, `${formatCurrency(expenses)} / mo cost`, '/platforms')}
       ${snapshot('wallet', 'green', 'Net This Month', formatCurrency(netThisMonth), 'Revenue − expenses', '/monthly', netThisMonth >= 0 ? 'green' : '')}

@@ -67,7 +67,7 @@ function renderList() {
       <p class="page-desc">${_all.length} client${_all.length !== 1 ? 's' : ''} · ${activeCount} active</p>
     </div>
 
-    <div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
+    <div class="stats-grid">
       ${statBox('building2', 'purple', 'Total Businesses', _all.length, `${activeCount} active`)}
       ${statBox('trendingUp', 'green', 'Recurring MRR', formatCurrency(activeMRR), 'Active clients / month', 'green')}
       ${statBox('receipt', 'yellow', 'Setup Fees', formatCurrency(setupThisMonth), 'Collected this month')}

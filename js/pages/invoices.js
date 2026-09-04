@@ -39,7 +39,7 @@ function build() {
       <p class="page-desc">${_all.length} invoice${_all.length !== 1 ? 's' : ''} · auto-generated on payment</p>
     </div>
 
-    <div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+    <div class="stats-grid">
       <div class="stat-card"><div class="stat-icon purple">${icon('receipt', 19)}</div><div class="stat-label">Total Invoices</div><div class="stat-value">${_all.length}</div></div>
       <div class="stat-card"><div class="stat-icon green">${icon('wallet', 19)}</div><div class="stat-label">Total Invoiced</div><div class="stat-value green">${formatCurrency(total)}</div></div>
       <div class="stat-card"><div class="stat-icon green">${icon('calendar', 19)}</div><div class="stat-label">This Month</div><div class="stat-value">${formatCurrency(thisMonth)}</div></div>

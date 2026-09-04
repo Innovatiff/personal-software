@@ -1132,7 +1132,12 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
   .page-content { padding: 20px; padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
   /* App-like bottom tab bar replaces the drawer as primary nav on phones */
   .bottom-nav { display: flex; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  /* Compact stat cards so 2-up phone rows aren't giant blocks */
+  .stat-card { padding: 15px; }
+  .stat-icon { width: 34px; height: 34px; margin-bottom: 11px; }
+  .stat-icon svg { width: 17px; height: 17px; }
+  .stat-value { font-size: 20px; }
   .assets-grid { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
   .detail-hero { padding: 22px; }
@@ -1145,8 +1150,8 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
 }
 
 @media (max-width: 460px) {
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .stat-value { font-size: 22px; }
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat-value { font-size: 19px; }
   .detail-stats { grid-template-columns: 1fr 1fr; }
   .filter-chip { padding: 6px 11px; font-size: 12px; }
   .search-input { width: 100%; }
@@ -1452,8 +1457,10 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
   .topbar-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; }
 }
 @media (max-width: 420px) {
+  .kpi-value { font-size: 21px; }
+}
+@media (max-width: 340px) {
   .kpi-grid { grid-template-columns: 1fr; }
-  .kpi-value { font-size: 26px; }
 }
 
 /* ============================================================

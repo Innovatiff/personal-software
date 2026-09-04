@@ -65,7 +65,7 @@ function buildPlatformsPage(platforms, activeFilter) {
       <p class="page-desc">Platforms &amp; services powering your assets</p>
     </div>
 
-    <div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
+    <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-icon purple">${icon('server', 19)}</div>
         <div class="stat-label">Total Platforms</div>

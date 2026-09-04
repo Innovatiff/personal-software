@@ -17,8 +17,10 @@ import { renderInvoices } from './pages/invoices.js';
 import { renderInvoiceDetail } from './pages/invoice-detail.js';
 import { renderNotFound } from './pages/not-found.js';
 import { initPWA } from './pwa.js';
+import { initTheme } from './theme.js';
 
-// Register the service worker + install prompt handling (runs once)
+// Apply saved theme + register the service worker (runs once)
+initTheme();
 initPWA();
 
 // Wrap a route handler to require authentication

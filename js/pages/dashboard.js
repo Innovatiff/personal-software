@@ -151,7 +151,7 @@ function build(businesses, assets, platforms) {
         </div>
         <div class="gauge-legend">
           <span><i style="background:var(--accent)"></i> Active</span>
-          <span><i style="background:rgba(255,255,255,0.1)"></i> Other</span>
+          <span><i style="background:var(--track-bg)"></i> Other</span>
         </div>
       </div>
 

@@ -1,10 +1,75 @@
 /* ============================================================
-   PASSIVE ASSET PORTFOLIO — Design System
-   A refined dark theme (Stripe / Linear / Notion inspired)
+   PORTFOLIO — Design System
+   Light by default; dark available via [data-theme="dark"]
    ============================================================ */
 
 :root {
-  /* Surfaces — dark slate with a cool undertone (lifted off pure black) */
+  /* Surfaces — clean light (near-white page, white cards) */
+  --bg-primary: #f4f5f7;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f7f8fa;
+  --bg-input: #f5f6f8;
+  --bg-elevated: #ffffff;
+
+  /* Hairline borders (dark ink at low alpha) */
+  --border: rgba(17, 24, 39, 0.09);
+  --border-light: rgba(17, 24, 39, 0.14);
+  --border-strong: rgba(17, 24, 39, 0.22);
+
+  /* Text */
+  --text-primary: #0f1729;
+  --text-secondary: #5b6472;
+  --text-muted: #98a0ad;
+
+  /* Brand accent — green (readable on white) */
+  --accent: #12a06a;
+  --accent-light: #0f9d58;
+  --accent-dark: #0b7f52;
+  --accent-glow: rgba(18, 160, 106, 0.22);
+  --purple-soft: rgba(18, 160, 106, 0.10);
+
+  /* Semantic */
+  --green: #0f9d58;
+  --green-soft: rgba(15, 157, 88, 0.12);
+  --red: #e5484d;
+  --red-soft: rgba(229, 72, 77, 0.12);
+  --yellow: #d98207;
+  --yellow-soft: rgba(217, 130, 7, 0.12);
+  --blue: #2f6fed;
+  --blue-soft: rgba(47, 111, 237, 0.12);
+
+  /* Theme-aware surfaces that used to hardcode dark values */
+  --topbar-bg: rgba(255, 255, 255, 0.78);
+  --nav-bg: rgba(255, 255, 255, 0.92);
+  --track-bg: rgba(17, 24, 39, 0.07);
+  --subtle: rgba(17, 24, 39, 0.05);
+  --subtle-strong: rgba(17, 24, 39, 0.08);
+  --glow: rgba(18, 160, 106, 0.10);
+  --sheen: transparent;
+
+  /* Radii */
+  --radius-sm: 9px;
+  --radius: 13px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  /* Shadows — soft, for lifting white cards off the page */
+  --shadow-sm: 0 1px 2px rgba(17,24,39,0.05);
+  --shadow: 0 4px 16px -6px rgba(17,24,39,0.12), 0 2px 6px -3px rgba(17,24,39,0.08);
+  --shadow-lg: 0 20px 48px -16px rgba(17,24,39,0.20), 0 6px 16px -8px rgba(17,24,39,0.12);
+  --shadow-accent: 0 8px 22px -8px rgba(18,160,106,0.45);
+  --shadow-card: 0 1px 2px rgba(17,24,39,0.04), 0 6px 20px -12px rgba(17,24,39,0.14);
+
+  --transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: all 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  --sidebar-width: 250px;
+
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+
+/* ── Dark theme ─────────────────────────────────────────────── */
+:root[data-theme="dark"] {
   --bg-primary: #0e1116;
   --bg-secondary: #141922;
   --bg-card: #1a2029;
@@ -12,24 +77,20 @@
   --bg-input: #141a23;
   --bg-elevated: #1f2735;
 
-  /* Hairline borders (a touch brighter for definition) */
   --border: rgba(255, 255, 255, 0.09);
   --border-light: rgba(255, 255, 255, 0.15);
   --border-strong: rgba(255, 255, 255, 0.20);
 
-  /* Text */
   --text-primary: #f1f3f6;
   --text-secondary: #a6abb8;
   --text-muted: #6d7382;
 
-  /* Brand accent — Donezo green */
   --accent: #1ea672;
   --accent-light: #38d996;
   --accent-dark: #178a5e;
   --accent-glow: rgba(30, 166, 114, 0.30);
   --purple-soft: rgba(30, 166, 114, 0.14);
 
-  /* Semantic */
   --green: #34d399;
   --green-soft: rgba(52, 211, 153, 0.13);
   --red: #fb7185;
@@ -39,23 +100,19 @@
   --blue: #60a5fa;
   --blue-soft: rgba(96, 165, 250, 0.13);
 
-  /* Radii */
-  --radius-sm: 9px;
-  --radius: 13px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
+  --topbar-bg: rgba(8, 8, 12, 0.72);
+  --nav-bg: rgba(20, 25, 34, 0.92);
+  --track-bg: rgba(255, 255, 255, 0.06);
+  --subtle: rgba(255, 255, 255, 0.05);
+  --subtle-strong: rgba(255, 255, 255, 0.08);
+  --glow: rgba(30, 166, 114, 0.10);
+  --sheen: rgba(255, 255, 255, 0.02);
 
-  /* Shadows — layered, soft */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
   --shadow: 0 4px 16px -4px rgba(0,0,0,0.5), 0 2px 6px -2px rgba(0,0,0,0.3);
   --shadow-lg: 0 16px 48px -12px rgba(0,0,0,0.65), 0 4px 12px -4px rgba(0,0,0,0.4);
   --shadow-accent: 0 6px 20px -6px rgba(30, 166, 114,0.5);
-
-  --transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: all 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-  --sidebar-width: 250px;
-
-  --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+  --shadow-card: none;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -83,7 +140,7 @@ body::before {
   transform: translateX(-50%);
   width: 900px;
   height: 600px;
-  background: radial-gradient(ellipse at center, rgba(30, 166, 114,0.10), transparent 70%);
+  background: radial-gradient(ellipse at center, var(--glow), transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -449,7 +506,7 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
 .topbar {
   position: sticky;
   top: 0;
-  background: rgba(8, 8, 12, 0.72);
+  background: var(--topbar-bg);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   border-bottom: 1px solid var(--border);
@@ -496,6 +553,13 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
   border-radius: var(--radius-lg);
   padding: 24px;
   transition: var(--transition);
+}
+
+/* Base elevation so white cards lift off the light page (none in dark) */
+.card, .stat-card, .asset-card, .kpi-card, .chart-card, .best-asset-card,
+.settings-section, .detail-hero, .detail-notes, .invoice-row, .biz-row,
+.danger-zone {
+  box-shadow: var(--shadow-card);
 }
 
 /* Stat cards */
@@ -656,7 +720,7 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
 .badge-status-sold { background: var(--purple-soft); color: var(--accent-light); }
 
 .badge-category {
-  background: rgba(255,255,255,0.05);
+  background: var(--subtle);
   color: var(--text-secondary);
   font-weight: 550;
   border: 1px solid var(--border);
@@ -700,7 +764,7 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
   font-size: 11px;
   padding: 1px 6px;
   border-radius: 6px;
-  background: rgba(255,255,255,0.06);
+  background: var(--subtle-strong);
   color: var(--text-muted);
 }
 .filter-chip.active .chip-count { background: rgba(30, 166, 114,0.2); color: var(--accent-light); }
@@ -824,7 +888,7 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
 .best-asset-income span { font-size: 14px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0; }
 
 /* Mini progress bars */
-.bar-track { height: 7px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; }
+.bar-track { height: 7px; background: var(--track-bg); border-radius: 4px; overflow: hidden; }
 .bar-fill { height: 100%; border-radius: 4px; transition: width 0.7s var(--ease-spring); }
 
 /* ============================================================
@@ -1183,7 +1247,7 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
   width: 176px; height: 176px;
   margin: 10px auto 4px;
   border-radius: 50%;
-  background: conic-gradient(var(--accent) calc(var(--v, 0) * 1%), rgba(255,255,255,0.06) 0);
+  background: conic-gradient(var(--accent) calc(var(--v, 0) * 1%), var(--track-bg) 0);
 }
 .gauge::after { content: ''; position: absolute; inset: 18px; border-radius: 50%; background: var(--bg-card); }
 .gauge-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1; }
@@ -1340,7 +1404,7 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
   position: fixed;
   left: 0; right: 0; bottom: 0;
   z-index: 90;
-  background: rgba(20, 25, 34, 0.92);
+  background: var(--nav-bg);
   backdrop-filter: blur(18px) saturate(160%);
   -webkit-backdrop-filter: blur(18px) saturate(160%);
   border-top: 1px solid var(--border);

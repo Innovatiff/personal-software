@@ -4,6 +4,7 @@ import { router } from '../router.js';
 import { toast } from '../toast.js';
 import { icon, brandMark } from '../icons.js';
 import { wireInstallButtons } from '../pwa.js';
+import { currentTheme, toggleTheme } from '../theme.js';
 
 export function renderSidebar(activePage) {
   const user = auth.currentUser;
@@ -99,6 +100,9 @@ export function renderTopbar(title, opts = {}) {
         <div class="topbar-title">${title}</div>
       </div>
       <div class="topbar-right">
+        <button class="btn btn-secondary btn-sm btn-icon" id="theme-btn" title="Toggle light / dark">
+          ${icon(currentTheme() === 'dark' ? 'sun' : 'moon', 16)}
+        </button>
         <button class="btn btn-secondary btn-sm" data-install style="display:none">
           ${icon('download', 15)} Install
         </button>
@@ -130,6 +134,15 @@ export function attachNavbarEvents() {
     overlay.addEventListener('click', () => {
       sidebar.classList.remove('open');
       overlay.classList.remove('open');
+    });
+  }
+
+  // Theme toggle
+  const themeBtn = document.getElementById('theme-btn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      const t = toggleTheme();
+      themeBtn.innerHTML = icon(t === 'dark' ? 'sun' : 'moon', 16);
     });
   }
 

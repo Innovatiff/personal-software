@@ -3,6 +3,7 @@ import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/n
 import { categoryMeta, serviceMeta, formatCurrency, computeMRR, isThisMonth } from '../utils.js';
 import { platformMeta } from './platforms.js';
 import { icon } from '../icons.js';
+import { animateCharts } from '../anim.js';
 
 export async function renderMonthly() {
   const app = document.getElementById('app');
@@ -117,6 +118,8 @@ function build(assets, platforms, businesses) {
       </div>
     </div>
   `;
+
+  animateCharts(content);
 }
 
 function evseBar(earn, exp, net) {
@@ -134,14 +137,14 @@ function evseBar(earn, exp, net) {
             <span style="color:var(--text-secondary);display:inline-flex;align-items:center;gap:6px">${icon('trendingUp', 14)} Earnings</span>
             <span class="num" style="color:var(--green);font-weight:700">${formatCurrency(earn)}</span>
           </div>
-          <div class="bar-track" style="height:10px"><div class="bar-fill" style="width:100%;background:var(--green)"></div></div>
+          <div class="bar-track" style="height:10px"><div class="bar-fill" style="width:0%;background:var(--green)" data-w="100"></div></div>
         </div>
         <div style="flex:1;min-width:220px">
           <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px">
             <span style="color:var(--text-secondary);display:inline-flex;align-items:center;gap:6px">${icon('trendingDown', 14)} Expenses</span>
             <span class="num" style="color:var(--red);font-weight:700">${formatCurrency(exp)}</span>
           </div>
-          <div class="bar-track" style="height:10px"><div class="bar-fill" style="width:${earn > 0 ? Math.min((exp / earn) * 100, 100) : 100}%;background:var(--red)"></div></div>
+          <div class="bar-track" style="height:10px"><div class="bar-fill" style="width:0%;background:var(--red)" data-w="${earn > 0 ? Math.min((exp / earn) * 100, 100) : 100}"></div></div>
         </div>
       </div>
       <div style="padding:16px 18px;background:${net >= 0 ? 'var(--green-soft)' : 'var(--red-soft)'};border-radius:var(--radius);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -181,7 +184,7 @@ function breakdownCard(title, ic, color, total, items, totalVal, barColor, empty
                   </div>
                   <span class="num" style="font-size:13px;font-weight:700;color:${color};flex-shrink:0">${formatCurrency(it.amount)}</span>
                 </div>
-                <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${barColor};opacity:0.85"></div></div>
+                <div class="bar-track"><div class="bar-fill" style="width:0%;background:${barColor};opacity:0.85" data-w="${pct}"></div></div>
               </div>`;
           }).join('')}
         </div>

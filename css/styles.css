@@ -1556,9 +1556,117 @@ select.form-control option { background: var(--bg-elevated); color: var(--text-p
   .inv-totals { width: 100%; }
 }
 
+/* ============================================================
+   PREMIUM MICRO-INTERACTIONS
+   ============================================================ */
+
+/* Route change transitions (View Transitions API) */
+::view-transition-old(root) { animation: vt-out 100ms ease both; }
+::view-transition-new(root) { animation: vt-in 240ms cubic-bezier(0.4, 0, 0.2, 1) both; }
+@keyframes vt-out { to { opacity: 0; } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(8px); } }
+
+/* Native-feel pressed states */
+.btn, .filter-chip, .bottom-nav-item, .nav-item { -webkit-tap-highlight-color: transparent; }
+.btn:active, .btn-primary:active, .btn-secondary:active, .btn-danger:active { transform: scale(0.96); }
+.filter-chip:active { transform: scale(0.95); }
+.asset-card:active, .kpi-card:active, .stat-card:active,
+.biz-row:active, .invoice-row:active, .mini-item:active { transform: scale(0.985); }
+.bottom-nav-icon { transition: transform 0.2s var(--ease-spring); }
+.bottom-nav-item:active .bottom-nav-icon { transform: scale(0.86); }
+
+/* Staggered list entrances */
+.mini-item { animation: fadeInUp 0.4s var(--ease-spring) both; }
+.mini-item:nth-child(1), .biz-row:nth-child(2), .invoice-row:nth-child(1) { animation-delay: 0.03s; }
+.mini-item:nth-child(2), .biz-row:nth-child(3), .invoice-row:nth-child(2) { animation-delay: 0.07s; }
+.mini-item:nth-child(3), .biz-row:nth-child(4), .invoice-row:nth-child(3) { animation-delay: 0.11s; }
+.mini-item:nth-child(4), .biz-row:nth-child(5), .invoice-row:nth-child(4) { animation-delay: 0.15s; }
+.mini-item:nth-child(5), .biz-row:nth-child(6), .invoice-row:nth-child(5) { animation-delay: 0.19s; }
+.biz-row:nth-child(7), .invoice-row:nth-child(6) { animation-delay: 0.23s; }
+
+/* Quick-add floating action button (phones) */
+.fab {
+  display: none;
+  position: fixed;
+  right: 18px;
+  bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+  z-index: 95;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(150deg, var(--accent-light), var(--accent-dark));
+  box-shadow: 0 10px 26px -8px rgba(18,160,106,0.65), inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: var(--transition);
+  animation: fabIn 0.5s var(--ease-spring) both;
+}
+.fab:active { transform: scale(0.88); }
+@keyframes fabIn { from { opacity: 0; transform: scale(0.6) translateY(16px); } }
+
+/* Bottom action sheet */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 998;
+  background: rgba(10, 16, 26, 0.45);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  display: flex;
+  align-items: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+.sheet {
+  width: 100%;
+  background: var(--bg-elevated);
+  border-radius: 22px 22px 0 0;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -16px 48px rgba(10,16,26,0.25);
+  animation: sheetUp 0.4s var(--ease-spring);
+}
+.sheet-overlay.closing { animation: fadeOut 0.22s ease both; }
+.sheet-overlay.closing .sheet { animation: sheetDown 0.22s ease both; }
+@keyframes sheetUp { from { transform: translateY(100%); } }
+@keyframes sheetDown { to { transform: translateY(100%); } }
+@keyframes fadeOut { to { opacity: 0; } }
+.sheet-handle { width: 42px; height: 4px; border-radius: 2px; background: var(--border-strong); margin: 6px auto 16px; }
+.sheet-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 8px 8px; }
+.sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 10px;
+  border-radius: 13px;
+  text-decoration: none;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: var(--transition);
+}
+.sheet-item:active { background: var(--bg-card-hover); transform: scale(0.98); }
+.sheet-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sheet-sub { font-size: 12px; font-weight: 450; color: var(--text-muted); margin-top: 1px; }
+
+@media (max-width: 768px) {
+  .fab { display: flex; }
+}
+
+/* Accessibility: honour reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Print — show only the invoice paper, on white */
 @media print {
-  .sidebar, .sidebar-overlay, .topbar, .bottom-nav, .no-print, #toast-container, .invoice-actions { display: none !important; }
+  .sidebar, .sidebar-overlay, .topbar, .bottom-nav, .no-print, #toast-container, .invoice-actions, .fab, .sheet-overlay { display: none !important; }
   body::before { display: none !important; }
   body, .app-layout, .main-content, .page-content { background: #fff !important; }
   .main-content { margin: 0 !important; }

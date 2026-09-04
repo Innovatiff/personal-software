@@ -5,6 +5,7 @@ import { toast } from '../toast.js';
 import { icon, brandMark } from '../icons.js';
 import { wireInstallButtons } from '../pwa.js';
 import { currentTheme, toggleTheme } from '../theme.js';
+import { haptic } from '../anim.js';
 
 export function renderSidebar(activePage) {
   const user = auth.currentUser;
@@ -83,7 +84,36 @@ function renderBottomNav(activePage) {
           <span class="bottom-nav-icon">${icon(t.icon, 21)}</span>
           <span class="bottom-nav-label">${t.label}</span>
         </a>`).join('')}
-    </nav>`;
+    </nav>
+    <button class="fab" id="quick-add" title="Quick add">${icon('plus', 24, { strokeWidth: 2.2 })}</button>`;
+}
+
+// Slide-up quick-add action sheet (opened from the FAB)
+function openQuickAdd() {
+  haptic(10);
+  const overlay = document.createElement('div');
+  overlay.className = 'sheet-overlay';
+  const item = (ic, color, bg, label, sub, hash) => `
+    <a class="sheet-item" href="#${hash}">
+      <span class="sheet-icon" style="background:${bg};color:${color}">${icon(ic, 20)}</span>
+      <span>${label}<div class="sheet-sub">${sub}</div></span>
+    </a>`;
+  overlay.innerHTML = `
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Quick add</div>
+      ${item('building2', 'var(--accent-light)', 'var(--purple-soft)', 'Business', 'A client paying setup + recurring fees', '/businesses/add')}
+      ${item('layers', 'var(--blue)', 'var(--blue-soft)', 'Asset', 'A passive income source', '/assets/add')}
+      ${item('server', 'var(--red)', 'var(--red-soft)', 'Expense', 'A platform or service you pay for', '/platforms/add')}
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const close = () => {
+    overlay.classList.add('closing');
+    setTimeout(() => overlay.remove(), 220);
+  };
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  overlay.querySelectorAll('.sheet-item').forEach(a => a.addEventListener('click', () => { haptic(8); close(); }));
 }
 
 export function renderTopbar(title, opts = {}) {
@@ -141,10 +171,15 @@ export function attachNavbarEvents() {
   const themeBtn = document.getElementById('theme-btn');
   if (themeBtn) {
     themeBtn.addEventListener('click', () => {
+      haptic(8);
       const t = toggleTheme();
       themeBtn.innerHTML = icon(t === 'dark' ? 'sun' : 'moon', 16);
     });
   }
+
+  // Quick-add FAB (phones)
+  const fab = document.getElementById('quick-add');
+  if (fab) fab.addEventListener('click', openQuickAdd);
 
   // Show/wire the "Install app" buttons if the browser allows installation
   wireInstallButtons();

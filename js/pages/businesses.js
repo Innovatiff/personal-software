@@ -8,6 +8,7 @@ import {
 } from '../utils.js';
 import { icon } from '../icons.js';
 import { toast } from '../toast.js';
+import { haptic } from '../anim.js';
 
 let _all = [];
 let _state = { status: 'All', search: '' };
@@ -210,6 +211,7 @@ async function markPaid(id) {
       issuerName: auth.currentUser?.displayName || '',
       issuerEmail: auth.currentUser?.email || '',
     });
+    haptic(15);
     toast(`Paid · invoice ${number} created`, 'success');
   } catch (err) {
     console.error(err);

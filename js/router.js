@@ -48,12 +48,20 @@ class Router {
       }
     }
 
-    if (matched) {
-      this.currentRoute = { path: matched, params };
-      this.routes[matched](params);
-    } else if (this.routes['*']) {
-      this.routes['*']({});
+    const handler = matched ? this.routes[matched] : this.routes['*'];
+    if (!handler) return;
+    if (matched) this.currentRoute = { path: matched, params };
+
+    // Smooth cross-fade between pages (View Transitions API, when available).
+    // The handler renders its shell synchronously; data fills in afterwards.
+    const run = () => { handler(matched ? params : {}); };
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (this._navigated && document.startViewTransition && !reduce) {
+      document.startViewTransition(run);
+    } else {
+      run();
     }
+    this._navigated = true;
   }
 
   start() {

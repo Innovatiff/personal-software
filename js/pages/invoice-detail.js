@@ -33,7 +33,8 @@ export async function renderInvoiceDetail(params) {
   content.innerHTML = `
     <div class="invoice-actions no-print">
       <button class="btn btn-ghost btn-sm" onclick="location.hash='#/invoices'">${icon('arrowLeft', 15)} Back</button>
-      <div style="margin-left:auto;display:flex;gap:8px">
+      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+        ${navigator.share ? `<button class="btn btn-secondary btn-sm" id="share-btn">${icon('share', 15)} Share</button>` : ''}
         <button class="btn btn-secondary btn-sm" id="print-btn">${icon('download', 15)} Print / Save PDF</button>
         <button class="btn btn-danger btn-sm" id="del-btn">${icon('trash', 15)} Delete</button>
       </div>
@@ -100,6 +101,12 @@ export async function renderInvoiceDetail(params) {
 
   document.getElementById('print-btn').addEventListener('click', () => window.print());
   document.getElementById('del-btn').addEventListener('click', () => confirmDelete(inv.id, inv.number));
+  document.getElementById('share-btn')?.addEventListener('click', () => {
+    navigator.share({
+      title: `Invoice ${inv.number || ''}`.trim(),
+      text: `Invoice ${inv.number} · ${inv.clientName} · ${formatCurrency(num(inv.amount))} — PAID (${formatShortDate(inv.paidDate)})`,
+    }).catch(() => {});
+  });
 }
 
 function confirmDelete(id, number) {

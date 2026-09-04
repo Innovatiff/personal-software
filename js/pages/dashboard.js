@@ -6,6 +6,9 @@ import {
   isThisMonth, BUSINESS_STATUSES
 } from '../utils.js';
 import { icon } from '../icons.js';
+import { countUps, animateCharts, haptic } from '../anim.js';
+
+let _cache = null; // last-loaded data, for cheap rebuilds (e.g. after goal edits)
 
 export async function renderDashboard() {
   const app = document.getElementById('app');
@@ -34,6 +37,7 @@ export async function renderDashboard() {
     ]);
   } catch (err) { console.error(err); }
 
+  _cache = { businesses, assets, platforms };
   build(businesses, assets, platforms);
 }
 
@@ -82,11 +86,11 @@ function build(businesses, assets, platforms) {
     ${headerHtml()}
 
     <div class="kpi-grid">
-      ${kpiCard({ feature: true, label: 'Total Businesses', value: businesses.length,
+      ${kpiCard({ feature: true, label: 'Total Businesses', value: businesses.length, raw: businesses.length, fmt: 'int',
         chip: `${counts['Active']} active`, arrow: '/businesses' })}
-      ${kpiCard({ label: 'Recurring MRR', value: formatCurrency(activeMRR), sub: 'Active clients / month', arrow: '/businesses' })}
-      ${kpiCard({ label: 'Made This Month', value: formatCurrency(totalThisMonth), sub: 'MRR + setup fees', arrow: '/monthly' })}
-      ${kpiCard({ label: 'Yearly Projection', value: formatCurrency(yearly), sub: 'Recurring × 12', arrow: '/monthly' })}
+      ${kpiCard({ label: 'Recurring MRR', value: formatCurrency(activeMRR), raw: activeMRR, sub: 'Active clients / month', arrow: '/businesses' })}
+      ${kpiCard({ label: 'Made This Month', value: formatCurrency(totalThisMonth), raw: totalThisMonth, sub: 'MRR + setup fees', arrow: '/monthly' })}
+      ${kpiCard({ label: 'Yearly Projection', value: formatCurrency(yearly), raw: yearly, sub: 'Recurring × 12', arrow: '/monthly' })}
     </div>
 
     <div class="dash-row r2">
@@ -104,12 +108,13 @@ function build(businesses, assets, platforms) {
       <!-- This month -->
       <div class="best-asset-card" style="display:flex;flex-direction:column">
         <div class="best-asset-label">${icon('wallet', 14)} This Month</div>
-        <div class="best-asset-income" style="font-size:32px">${formatCurrency(totalThisMonth)}</div>
-        <div style="margin:16px 0;display:flex;flex-direction:column;gap:10px">
+        <div class="best-asset-income" style="font-size:32px" data-count="${totalThisMonth}" data-fmt="cur">${formatCurrency(totalThisMonth)}</div>
+        <div style="margin:16px 0 14px;display:flex;flex-direction:column;gap:10px">
           ${lineItem('Recurring MRR', formatCurrency(activeMRR))}
           ${lineItem('Setup fees', formatCurrency(setupThisMonth))}
           ${lineItem('Net (incl. assets − expenses)', formatCurrency(netThisMonth), netThisMonth >= 0 ? 'var(--green)' : 'var(--red)')}
         </div>
+        ${goalHtml(totalThisMonth)}
         <a href="#/businesses/add" class="btn btn-primary btn-full" style="margin-top:auto">${icon('plus', 16)} Add Business</a>
       </div>
 
@@ -143,9 +148,9 @@ function build(businesses, assets, platforms) {
       <div class="chart-card" style="display:flex;flex-direction:column">
         <div class="section-title" style="margin-bottom:4px">Active Rate</div>
         <div class="section-sub">Share of active clients</div>
-        <div class="gauge" style="--v:${activeRate}">
+        <div class="gauge" style="--v:0" data-gauge="${activeRate}">
           <div class="gauge-label">
-            <div class="gauge-value">${activeRate}%</div>
+            <div class="gauge-value" data-count="${activeRate}" data-fmt="pct">${activeRate}%</div>
             <div class="gauge-sub">${counts['Active']} of ${businesses.length}</div>
           </div>
         </div>
@@ -170,6 +175,80 @@ function build(businesses, assets, platforms) {
       ${snapshot('wallet', 'green', 'Net This Month', formatCurrency(netThisMonth), 'Revenue − expenses', '/monthly', netThisMonth >= 0 ? 'green' : '')}
     </div>
   `;
+
+  // Kick off premium micro-interactions + goal editing
+  countUps(content);
+  animateCharts(content);
+  const goalBtn = content.querySelector('#goal-btn');
+  if (goalBtn) goalBtn.addEventListener('click', openGoalModal);
+}
+
+// ── Monthly revenue goal (stored on this device) ─────────────
+
+function getGoal() {
+  try { const g = parseFloat(localStorage.getItem('pf-goal')); return g > 0 ? g : null; }
+  catch { return null; }
+}
+
+function goalHtml(total) {
+  const goal = getGoal();
+  if (!goal) {
+    return `
+      <button class="btn btn-secondary btn-sm" id="goal-btn" style="margin-bottom:14px;align-self:flex-start">
+        ${icon('target', 14)} Set monthly goal
+      </button>`;
+  }
+  const pct = Math.min(100, Math.round((total / goal) * 100));
+  return `
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+        <button class="btn btn-ghost btn-sm" id="goal-btn" style="padding:2px 4px;font-size:12px;gap:5px">
+          ${icon('target', 13)} Goal ${formatCurrency(goal)}
+        </button>
+        <span class="num" style="font-size:12px;font-weight:750;color:${pct >= 100 ? 'var(--green)' : 'var(--accent-light)'}">${pct}%${pct >= 100 ? ' 🎉' : ''}</span>
+      </div>
+      <div class="bar-track" style="height:8px">
+        <div class="bar-fill" style="width:0%;background:linear-gradient(90deg,var(--accent-light),var(--accent))" data-w="${pct}"></div>
+      </div>
+    </div>`;
+}
+
+function openGoalModal() {
+  const goal = getGoal();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-title" style="display:flex;align-items:center;gap:9px">${icon('target', 18)} Monthly Goal</div>
+      <div class="modal-desc">Set a revenue target for each month — the dashboard tracks your progress toward it.</div>
+      <div class="form-group">
+        <label class="form-label">Goal amount ($)</label>
+        <input class="form-control" type="number" id="goal-input" min="1" step="1" placeholder="e.g. 2000" value="${goal ?? ''}" />
+      </div>
+      <div class="modal-actions">
+        ${goal ? '<button class="btn btn-ghost" id="goal-clear" style="margin-right:auto;color:var(--red)">Remove</button>' : ''}
+        <button class="btn btn-secondary" id="goal-cancel">Cancel</button>
+        <button class="btn btn-primary" id="goal-save">Save Goal</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const input = overlay.querySelector('#goal-input');
+  input.focus();
+
+  const rebuild = () => { overlay.remove(); if (_cache) build(_cache.businesses, _cache.assets, _cache.platforms); };
+  overlay.querySelector('#goal-cancel').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('#goal-save').addEventListener('click', () => {
+    const v = parseFloat(input.value);
+    if (!(v > 0)) { input.focus(); return; }
+    try { localStorage.setItem('pf-goal', String(v)); } catch {}
+    haptic(12);
+    rebuild();
+  });
+  overlay.querySelector('#goal-clear')?.addEventListener('click', () => {
+    try { localStorage.removeItem('pf-goal'); } catch {}
+    rebuild();
+  });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 }
 
 function kpiCard({ feature, label, value, sub, chip, arrow }) {
@@ -196,7 +275,7 @@ function revBars(bars, maxMRR, totalMRR) {
         const share = totalMRR ? Math.round((b._mrr / totalMRR) * 100) : 0;
         return `
           <div class="revbar-col" title="${escAttr(b.name)} · ${formatCurrency(b._mrr)}/mo">
-            <div class="revbar ${cls}" style="height:${h}%">
+            <div class="revbar ${cls}" style="height:8%" data-h="${h}">
               ${isTop ? `<div class="revbar-pill">${share}%</div>` : ''}
             </div>
             <div class="revbar-label">${escHtml(shortName(b.name))}</div>
@@ -223,7 +302,7 @@ function statusBreakdown(counts, total) {
               </span>
               <span class="num" style="font-size:13px;font-weight:700">${r.n}</span>
             </div>
-            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${r.color}"></div></div>
+            <div class="bar-track"><div class="bar-fill" style="width:0%;background:${r.color}" data-w="${pct}"></div></div>
           </div>`;
       }).join('')}
     </div>`;

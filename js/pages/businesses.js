@@ -215,7 +215,9 @@ async function markPaid(id) {
     toast(`Paid · invoice ${number} created`, 'success');
   } catch (err) {
     console.error(err);
-    toast('Payment recorded (invoice could not be created)', 'info');
+    toast(err?.code === 'permission-denied'
+      ? 'Invoice blocked: add the "invoices" rule in Firestore → Rules'
+      : 'Payment recorded (invoice could not be created)', 'error', 6000);
   }
   renderList();
 }

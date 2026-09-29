@@ -8,6 +8,7 @@ import {
 } from '../utils.js';
 import { icon } from '../icons.js';
 import { countUps, animateCharts, haptic } from '../anim.js';
+import { achievementsFor } from '../achievements.js';
 
 let _cache = null; // last-loaded data, for cheap rebuilds (e.g. after goal edits)
 
@@ -95,12 +96,16 @@ function build(businesses, assets, platforms, invoices) {
   const chartMax = Math.max(...m12.map(m => revByMonth[m.key] || 0), 1);
   const nowKey = tsMonthKey(new Date());
 
+  // ── Streaks + trophies ──
+  const ach = achievementsFor({ invoices, businesses });
+  const freshIds = new Set(ach.fresh.map(m => m.id));
+
   const content = document.querySelector('.page-content');
   content.innerHTML = `
     <!-- Hero -->
     <section class="hero">
       <div>
-        <div class="hero-kicker">Your business. Always on track.</div>
+        <div class="hero-kicker">Your business. Always on track.${ach.streaks.growth > 0 ? `<span class="streak-chip hot">${icon('flame', 13, { strokeWidth: 2.2 })} ${ach.streaks.growth}-month streak</span>` : ''}</div>
         <h1 class="hero-title">Smarter billing for a <em>growing</em> business.</h1>
         <p class="hero-sub">Hi ${escHtml(firstName)} — track clients, register one-time jobs, generate polished invoices and watch revenue grow, all in one place.</p>
         <div class="hero-actions">
@@ -180,6 +185,7 @@ function build(businesses, assets, platforms, invoices) {
       <div class="best-asset-card tm-card">
         <div class="best-asset-label">${icon('wallet', 14)} This Month</div>
         <div class="best-asset-income" data-count="${collected}" data-fmt="cur">${formatCurrency(collected)}</div>
+        ${streakChips(ach.streaks, lastMonthRev)}
         <div class="tm-lines">
           ${lineItem('Recurring payments', formatCurrency(recurringThisMonth))}
           ${lineItem('One-time services', formatCurrency(oneTimeThisMonth))}
@@ -219,6 +225,9 @@ function build(businesses, assets, platforms, invoices) {
           ${statusBreakdown(counts, businesses.length)}` : miniEmpty('users', 'No clients yet')}
       </div>
     </div>
+
+    <!-- Trophies -->
+    ${trophiesCard(ach, freshIds)}
 
     <!-- Projection + portfolio tie-in -->
     <div class="stats-grid" style="margin-top:4px">
@@ -304,6 +313,55 @@ function snapshot(ic, color, label, value, sub, href, valueClass = '') {
       <div class="stat-value ${valueClass}">${value}</div>
       <div class="stat-sub">${sub}</div>
     </a>`;
+}
+
+// ── Streak chips (This Month card) ───────────────────────────
+function streakChips(s, lastMonth) {
+  const chips = [];
+  if (s.growth > 0) {
+    chips.push(`<span class="streak-chip hot" title="Consecutive months beating the month before">${icon('flame', 13, { strokeWidth: 2.2 })} ${s.growth}-month growth streak${s.growthLive ? '' : ` · ${formatCurrency(s.needed)} to keep it`}</span>`);
+  } else if (lastMonth > 0 && s.needed > 0) {
+    chips.push(`<span class="streak-chip" title="Beat last month to start a growth streak">${icon('flame', 13, { strokeWidth: 2.2 })} ${formatCurrency(s.needed)} more beats last month</span>`);
+  }
+  if (s.goal > 0) {
+    chips.push(`<span class="streak-chip goal" title="Consecutive months at or above your goal">${icon('target', 13, { strokeWidth: 2.2 })} ${s.goal}-month goal streak</span>`);
+  }
+  return chips.length ? `<div class="streak-row">${chips.join('')}</div>` : '';
+}
+
+// ── Trophies strip ───────────────────────────────────────────
+function trophiesCard(a, freshIds) {
+  const { earned, locked, milestones } = a;
+  const shown = earned.slice(0, 7);
+  return `
+    <div class="chart-card ach-card">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Trophies</div>
+          <div class="section-sub">${earned.length} of ${milestones.length} unlocked${a.fresh.length ? ` · <span style="color:var(--red);font-weight:650">${a.fresh.length} new</span>` : ''}</div>
+        </div>
+        <a href="#/trophies" class="btn btn-ghost btn-sm">View all</a>
+      </div>
+      <div class="ach-row">
+        <div class="ach-earned">
+          ${shown.length ? shown.map((m, i) => `
+            <a href="#/trophies" class="ach-badge ${freshIds.has(m.id) ? 'is-new' : ''}" title="${escHtml(m.title)} · ${formatShortDate(m.earnedAt)}" style="animation-delay:${i * 0.05}s">${icon(m.icon, 19, { strokeWidth: 2 })}</a>`).join('')
+            : `<span class="ach-empty">${icon('trophy', 16)} Collect your first payment to unlock a trophy</span>`}
+          ${earned.length > shown.length ? `<a href="#/trophies" class="ach-more">+${earned.length - shown.length}</a>` : ''}
+        </div>
+        <div class="ach-next">
+          ${locked.slice(0, 2).map(m => `
+            <div class="ach-next-item">
+              <div class="ach-next-icon">${icon(m.icon, 15)}</div>
+              <div class="ach-next-main">
+                <div class="ach-next-head"><span>${escHtml(m.title)}</span><span class="num" style="color:var(--text-muted)">${m.pct}%</span></div>
+                <div class="bar-track" style="height:6px"><div class="bar-fill" style="width:0%;background:var(--accent)" data-w="${m.pct}"></div></div>
+                <div class="ach-next-sub">${m.hint ? escHtml(m.hint) : m.progress}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
 }
 
 function lineItem(label, value, color) {

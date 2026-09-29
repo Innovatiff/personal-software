@@ -4,10 +4,12 @@ import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/n
 import { toast } from '../toast.js';
 import { router } from '../router.js';
 import { icon } from '../icons.js';
+import { celebratePrefs, setCelebratePrefs, payday } from '../celebrate.js';
 
 export function renderSettings() {
   const user = auth.currentUser;
   const initial = user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?';
+  const prefs = celebratePrefs();
 
   document.getElementById('app').innerHTML = `
     ${renderSidebar('settings')}
@@ -60,6 +62,21 @@ export function renderSettings() {
           </form>
         </div>
 
+        <!-- Celebrations -->
+        <div class="settings-section">
+          <div class="settings-title" style="display:flex;align-items:center;gap:8px">${icon('partyPopper', 16)} Celebrations</div>
+          <div class="settings-desc">What happens every time you collect a payment</div>
+          <label class="toggle-row">
+            <span><b>Confetti & flying amount</b><small>A burst of confetti and the amount flying into your month total</small></span>
+            <span class="toggle"><input type="checkbox" id="pref-confetti" ${prefs.confetti ? 'checked' : ''}><i></i></span>
+          </label>
+          <label class="toggle-row">
+            <span><b>Payday chime</b><small>A short, bright sound with each payment</small></span>
+            <span class="toggle"><input type="checkbox" id="pref-sound" ${prefs.sound ? 'checked' : ''}><i></i></span>
+          </label>
+          <button class="btn btn-secondary btn-sm" id="pref-test" style="margin-top:16px">${icon('sparkle', 14)} Preview a payday</button>
+        </div>
+
         <!-- Danger Zone -->
         <div class="danger-zone">
           <div class="settings-title" style="color:var(--red);display:flex;align-items:center;gap:8px">${icon('alert', 16)} Danger Zone</div>
@@ -71,6 +88,18 @@ export function renderSettings() {
   `;
 
   attachNavbarEvents();
+
+  // Celebration preferences (stored on this device)
+  document.getElementById('pref-confetti').addEventListener('change', (e) => setCelebratePrefs({ confetti: e.target.checked }));
+  document.getElementById('pref-sound').addEventListener('change', (e) => setCelebratePrefs({ sound: e.target.checked }));
+  document.getElementById('pref-test').addEventListener('click', (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    payday({
+      amount: 400, clientName: 'Demo Client', monthTotal: 2400, lastMonth: 1800,
+      streaks: { growth: 3, growthLive: true, needed: 0, goal: 0, goalAmount: null },
+      badges: [], origin: { x: r.left + r.width / 2, y: r.top + r.height / 2 },
+    });
+  });
 
   // Profile form
   document.getElementById('profile-form').addEventListener('submit', async (e) => {

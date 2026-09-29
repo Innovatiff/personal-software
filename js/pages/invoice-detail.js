@@ -4,7 +4,8 @@ import { formatCurrency, formatShortDate, ordinal, todayISO } from '../utils.js'
 import { icon, brandMark } from '../icons.js';
 import { toast } from '../toast.js';
 import { router } from '../router.js';
-import { haptic } from '../anim.js';
+import { celebrateCollection } from '../achievements.js';
+import { originOf } from '../celebrate.js';
 
 export async function renderInvoiceDetail(params) {
   const { id } = params;
@@ -142,13 +143,13 @@ function render(inv) {
       text: `Invoice ${inv.number} · ${inv.clientName} · ${formatCurrency(total)} — ${paid ? 'PAID' : 'UNPAID'}`,
     }).catch(() => {});
   });
-  document.getElementById('paid-btn')?.addEventListener('click', async () => {
+  document.getElementById('paid-btn')?.addEventListener('click', async (e) => {
+    const origin = originOf(e.currentTarget);
     try {
       const upd = { status: 'Paid', paidDate: todayISO() };
       await updateInvoice(inv.id, upd);
-      haptic(14);
-      toast('Marked as paid', 'success');
       render({ ...inv, ...upd });
+      celebrateCollection({ amount: total, clientName: inv.clientName, origin });
     } catch { toast('Could not update invoice', 'error'); }
   });
 }

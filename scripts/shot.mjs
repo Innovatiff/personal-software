@@ -1,9 +1,9 @@
 // True mobile screenshot via Chrome DevTools Protocol (device metrics override).
-// Usage: node scripts/shot.mjs <url> <out.png> [width] [height]
+// Usage: node scripts/shot.mjs <url> <out.png> [width] [height] [waitMs]
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
-const [url, out, width = '390', height = '844'] = process.argv.slice(2);
+const [url, out, width = '390', height = '844', wait = '1500'] = process.argv.slice(2);
 const W = Number(width), H = Number(height);
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 
@@ -48,7 +48,7 @@ async function main() {
   const loaded = waitEvent('Page.loadEventFired');
   await send('Page.navigate', { url });
   await Promise.race([loaded, sleep(6000)]);
-  await sleep(1500); // let JS modules render
+  await sleep(Number(wait)); // let JS modules render
 
   const { cssContentSize } = await send('Page.getLayoutMetrics');
   const fullH = Math.min(Math.ceil(cssContentSize?.height || H), 6000);

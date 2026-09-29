@@ -21,6 +21,7 @@ export function renderSidebar(activePage) {
     { id: 'assets', label: 'Assets', icon: 'layers', hash: '/assets' },
     { id: 'platforms', label: 'Expenses', icon: 'server', hash: '/platforms' },
     { id: 'monthly', label: 'Reports', icon: 'barChart', hash: '/monthly' },
+    { id: 'trophies', label: 'Trophies', icon: 'trophy', hash: '/trophies' },
     { id: 'settings', label: 'Settings', icon: 'settings', hash: '/settings' },
   ];
 
@@ -75,7 +76,7 @@ function renderBottomNav(activePage) {
     { id: 'dashboard', label: 'Home', icon: 'dashboard', hash: '/dashboard' },
     { id: 'businesses', label: 'Clients', icon: 'building2', hash: '/businesses' },
     { id: 'invoices', label: 'Invoices', icon: 'receipt', hash: '/invoices' },
-    { id: 'platforms', label: 'Expenses', icon: 'server', hash: '/platforms' },
+    { id: 'trophies', label: 'Trophies', icon: 'trophy', hash: '/trophies' },
     { id: 'monthly', label: 'Reports', icon: 'barChart', hash: '/monthly' },
   ];
   return `

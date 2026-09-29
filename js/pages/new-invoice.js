@@ -6,6 +6,8 @@ import { icon } from '../icons.js';
 import { toast } from '../toast.js';
 import { router } from '../router.js';
 import { haptic } from '../anim.js';
+import { celebrateCollection } from '../achievements.js';
+import { originOf } from '../celebrate.js';
 
 /**
  * Manual invoice for a one-time service
@@ -152,9 +154,11 @@ export async function renderNewInvoice() {
         issuerName: auth.currentUser?.displayName || '',
         issuerEmail: auth.currentUser?.email || '',
       });
-      haptic(14);
+      const origin = originOf(btn);
       toast(`Invoice ${number} created`, 'success');
       router.navigate(`/invoices/${ref.id}`);
+      if (status === 'Paid') celebrateCollection({ amount, clientName, origin });
+      else haptic(14);
     } catch (err) {
       console.error(err);
       errEl.textContent = err?.code === 'permission-denied'

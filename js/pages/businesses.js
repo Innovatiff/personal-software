@@ -9,6 +9,8 @@ import {
 import { icon } from '../icons.js';
 import { toast } from '../toast.js';
 import { haptic } from '../anim.js';
+import { celebrateCollection } from '../achievements.js';
+import { originOf } from '../celebrate.js';
 
 let _all = [];
 let _state = { status: 'All', search: '' };
@@ -117,7 +119,7 @@ function renderList() {
     searchEl.setSelectionRange(len, len);
   }
   content.querySelectorAll('[data-paid]').forEach(btn => {
-    btn.addEventListener('click', (e) => { e.stopPropagation(); markPaid(btn.dataset.paid); });
+    btn.addEventListener('click', (e) => { e.stopPropagation(); markPaid(btn.dataset.paid, originOf(btn)); });
   });
   content.querySelectorAll('[data-del]').forEach(btn => {
     btn.addEventListener('click', (e) => { e.stopPropagation(); confirmDelete(btn.dataset.del, btn.dataset.name); });
@@ -177,7 +179,7 @@ function bizRow(b) {
     </div>`;
 }
 
-async function markPaid(id) {
+async function markPaid(id, origin) {
   const b = _all.find(x => x.id === id);
   if (!b) return;
   const isFirstPayment = !(b.paymentsCount > 0);
@@ -204,6 +206,7 @@ async function markPaid(id) {
     if (isFirstPayment && num(b.setupFee) > 0) {
       items.push({ description: 'Setup & onboarding fee', detail: 'One-time', amount: num(b.setupFee) });
     }
+    const amount = items.reduce((s, it) => s + it.amount, 0);
     await addInvoice({
       number,
       kind: 'recurring',
@@ -215,7 +218,7 @@ async function markPaid(id) {
       price: num(b.price),
       users,
       items,
-      amount: items.reduce((s, it) => s + it.amount, 0),
+      amount,
       dueDay: b.dueDay || null,
       issueDate: todayISO(),
       paidDate: todayISO(),
@@ -224,8 +227,8 @@ async function markPaid(id) {
       issuerName: auth.currentUser?.displayName || '',
       issuerEmail: auth.currentUser?.email || '',
     });
-    haptic(15);
-    toast(`Paid · invoice ${number} created`, 'success');
+    toast(`Invoice ${number} created`, 'success');
+    celebrateCollection({ amount, clientName: b.name, origin });
   } catch (err) {
     console.error(err);
     toast(err?.code === 'permission-denied'

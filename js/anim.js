@@ -62,7 +62,7 @@ export function animateCharts(root = document) {
   });
 }
 
-/** Light haptic tap on supporting devices (no-op elsewhere). */
-export function haptic(ms = 10) {
-  try { if (navigator.vibrate) navigator.vibrate(ms); } catch {}
+/** Light haptic tap on supporting devices (no-op elsewhere). Accepts a pattern array too. */
+export function haptic(pattern = 10) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch {}
 }

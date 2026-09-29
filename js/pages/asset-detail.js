@@ -12,7 +12,7 @@ export async function renderAssetDetail(params) {
   app.innerHTML = `
     ${renderSidebar('assets')}
     <div class="main-content">
-      ${renderTopbar('Asset Details', { noAdd: true })}
+      ${renderTopbar('Asset Details', { noAdd: true, noFab: true })}
       <div class="page-content">
         <div class="skeleton" style="height:44px;width:120px;margin-bottom:24px"></div>
         <div class="skeleton" style="height:260px;border-radius:var(--radius-lg)"></div>

@@ -1,9 +1,9 @@
 // True mobile screenshot via Chrome DevTools Protocol (device metrics override).
-// Usage: node scripts/shot.mjs <url> <out.png> [width] [height] [waitMs]
+// Usage: node scripts/shot.mjs <url> <out.png> [width] [height] [waitMs] [clipY] [clipH]
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 
-const [url, out, width = '390', height = '844', wait = '1500'] = process.argv.slice(2);
+const [url, out, width = '390', height = '844', wait = '1500', clipY = '0', clipH = ''] = process.argv.slice(2);
 const W = Number(width), H = Number(height);
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 
@@ -50,15 +50,23 @@ async function main() {
   await Promise.race([loaded, sleep(6000)]);
   await sleep(Number(wait)); // let JS modules render
 
+  if (process.env.EVAL) {
+    const ev = await send('Runtime.evaluate', { expression: process.env.EVAL, returnByValue: true });
+    console.log('EVAL:', JSON.stringify(ev?.result?.value ?? ev?.exceptionDetails?.text));
+  }
+  const ovf = await send('Runtime.evaluate', { expression: "document.getElementById('ovf')?.textContent || ''", returnByValue: true });
+  if (ovf?.result?.value) console.log('[' + ovf.result.value + ']');
   const { cssContentSize } = await send('Page.getLayoutMetrics');
   const fullH = Math.min(Math.ceil(cssContentSize?.height || H), 6000);
+  const y = Number(clipY) || 0;
+  const h = clipH ? Math.min(Number(clipH), fullH - y) : fullH - y;
   const shot = await send('Page.captureScreenshot', {
     format: 'png',
     captureBeyondViewport: true,
-    clip: { x: 0, y: 0, width: W, height: fullH, scale: 1 },
+    clip: { x: 0, y, width: W, height: h, scale: 1 },
   });
   fs.writeFileSync(out, Buffer.from(shot.data, 'base64'));
-  console.log('wrote', out, W + 'x' + fullH);
+  console.log('wrote', out, W + 'x' + h + (y ? ' @y=' + y : '') + ' (page ' + fullH + ')');
   ws.close();
   chrome.kill();
 }

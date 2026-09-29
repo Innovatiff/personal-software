@@ -120,6 +120,8 @@ function openQuickAdd() {
 }
 
 export function renderTopbar(title, opts = {}) {
+  // Forms, detail pages and settings hide the floating quick-add button so it never covers inputs
+  try { document.body.classList.toggle('no-fab', !!opts.noFab); } catch {}
   const addLabel = opts.addLabel || 'New Invoice';
   const addHash = opts.addHash || '/invoices/new';
   const addBtn = opts.noAdd ? '' : `

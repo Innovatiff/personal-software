@@ -16,7 +16,7 @@ export async function renderAddPlatform(params) {
   document.getElementById('app').innerHTML = `
     ${renderSidebar('platforms')}
     <div class="main-content">
-      ${renderTopbar(editId ? 'Edit Expense' : 'Add Expense', { noAdd: true })}
+      ${renderTopbar(editId ? 'Edit Expense' : 'Add Expense', { noAdd: true, noFab: true })}
       <div class="page-content">
         <div class="page-header" style="display:flex;align-items:center;gap:12px">
           <button class="btn btn-ghost btn-sm btn-icon" onclick="history.back()">${icon('arrowLeft', 16)}</button>

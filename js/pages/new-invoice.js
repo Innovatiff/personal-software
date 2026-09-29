@@ -17,7 +17,7 @@ export async function renderNewInvoice() {
   document.getElementById('app').innerHTML = `
     ${renderSidebar('invoices')}
     <div class="main-content">
-      ${renderTopbar('New Invoice', { noAdd: true })}
+      ${renderTopbar('New Invoice', { noAdd: true, noFab: true })}
       <div class="page-content">
         <div class="page-header" style="display:flex;align-items:center;gap:12px">
           <button class="btn btn-ghost btn-sm btn-icon" onclick="history.back()">${icon('arrowLeft', 16)}</button>

@@ -15,7 +15,7 @@ export async function renderInvoiceDetail(params) {
   app.innerHTML = `
     ${renderSidebar('invoices')}
     <div class="main-content">
-      ${renderTopbar('Invoice', { noAdd: true })}
+      ${renderTopbar('Invoice', { noAdd: true, noFab: true })}
       <div class="page-content">
         <div class="skeleton" style="height:44px;width:140px;margin-bottom:20px"></div>
         <div class="skeleton" style="height:560px;max-width:840px;margin:0 auto;border-radius:18px"></div>

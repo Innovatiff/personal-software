@@ -113,7 +113,7 @@ function build(assets, platforms, businesses, invoices) {
         </div>
       </div>
       <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <table class="proj-table" style="width:100%;border-collapse:collapse;font-size:14px">
           <thead>
             <tr style="border-bottom:1px solid var(--border)">
               <th style="text-align:left;padding:10px 0;color:var(--text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Line item</th>

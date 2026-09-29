@@ -15,7 +15,7 @@ export async function renderAddBusiness(params) {
   document.getElementById('app').innerHTML = `
     ${renderSidebar('businesses')}
     <div class="main-content">
-      ${renderTopbar(editId ? 'Edit Client' : 'Add Client', { noAdd: true })}
+      ${renderTopbar(editId ? 'Edit Client' : 'Add Client', { noAdd: true, noFab: true })}
       <div class="page-content">
         <div class="page-header" style="display:flex;align-items:center;gap:12px">
           <button class="btn btn-ghost btn-sm btn-icon" onclick="history.back()">${icon('arrowLeft', 16)}</button>

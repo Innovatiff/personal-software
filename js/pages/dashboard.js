@@ -346,7 +346,7 @@ function heroArt() {
       </g>
       <g filter="url(#ha-sh)">
         <rect x="196" y="18" width="118" height="64" rx="14" fill="url(#ha-ink)"/>
-        <path d="M214 34l5.5 9 5.5-9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <polygon points="212.5,31.5 220,42.5 227.5,31.5 220,39" fill="#fff"/>
         <rect x="236" y="32" width="58" height="8" rx="4" fill="#fff" opacity="0.9"/>
         <rect x="236" y="48" width="36" height="6" rx="3" fill="#fff" opacity="0.4"/>
         <rect x="214" y="60" width="86" height="8" rx="4" fill="#3b6df5"/>

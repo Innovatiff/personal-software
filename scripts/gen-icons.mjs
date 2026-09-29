@@ -1,5 +1,5 @@
 // Dependency-free PNG icon generator for the PWA.
-// Draws the app's green brand mark (layered diamonds) at several sizes.
+// Draws the Innovatif chevron mark on a near-black tile at several sizes.
 import zlib from 'node:zlib';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -86,25 +86,33 @@ function makeIcon(size, { rounded, glyphScale = 1 }) {
     }
   }
 
-  // "V" chevron in a 32-unit grid, centered, scaled
+  // Sharp chevron mark (filled polygon) in a 32-unit grid, centered, scaled.
+  // Same points as brandMark() in js/icons.js and the loading logo in index.html.
   const g = size / 32 * glyphScale;
   const off = (size - 32 * g) / 2;
-  const gx = u => off + u * g;
-  const gy = v => off + v * g;
-  const stroke = 3.4 * g, half = stroke / 2;
-  const aa = Math.max(1, g * 0.9);
-  const segs = [
-    [[8.6, 10.2], [16, 22.2]],
-    [[23.4, 10.2], [16, 22.2]],
-  ];
+  const poly = [[4.5, 7.6], [16, 24.4], [27.5, 7.6], [16, 19.1]]
+    .map(([u, v]) => [off + u * g, off + v * g]);
+  const aa = Math.max(0.75, g * 0.55);
+
+  const inside = (px, py) => {
+    let inn = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const [xi, yi] = poly[i], [xj, yj] = poly[j];
+      if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inn = !inn;
+    }
+    return inn;
+  };
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const idx = (y * size + x) * 4;
       const px = x + 0.5, py = y + 0.5;
       let dmin = Infinity;
-      for (const [a, b] of segs) dmin = Math.min(dmin, distToSeg(px, py, gx(a[0]), gy(a[1]), gx(b[0]), gy(b[1])));
-      const cov = clamp01((half - dmin) / aa + 0.5);
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        dmin = Math.min(dmin, distToSeg(px, py, poly[j][0], poly[j][1], poly[i][0], poly[i][1]));
+      }
+      const sd = inside(px, py) ? -dmin : dmin; // signed distance: negative inside
+      const cov = clamp01(0.5 - sd / aa);
       if (cov > 0) over(rgba, idx, 255, 255, 255, cov);
     }
   }

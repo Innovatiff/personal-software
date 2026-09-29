@@ -4,6 +4,8 @@ import { categoryMeta, serviceMeta, formatCurrency, computeMRR, isThisMonthISO }
 import { platformMeta } from './platforms.js';
 import { icon } from '../icons.js';
 import { animateCharts } from '../anim.js';
+import { recapMonthKey } from './recap.js';
+import { monthLabel } from '../insights.js';
 
 export async function renderMonthly() {
   const app = document.getElementById('app');
@@ -66,11 +68,15 @@ function build(assets, platforms, businesses, invoices) {
       <div class="stat-sub">${sub}</div>
     </div>`;
 
+  const recapKey = recapMonthKey();
   const content = document.querySelector('.page-content');
   content.innerHTML = `
-    <div class="page-header">
-      <h1 class="page-title">Monthly Report</h1>
-      <p class="page-desc">Your complete financial picture for this month</p>
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div>
+        <h1 class="page-title">Monthly Report</h1>
+        <p class="page-desc">Your complete financial picture for this month</p>
+      </div>
+      <a href="#/recap/${recapKey}" class="btn btn-secondary btn-sm">${icon('video', 15)} Watch ${monthLabel(recapKey, { month: 'long' })} recap</a>
     </div>
 
     <div class="stats-grid">

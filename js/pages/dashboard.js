@@ -9,6 +9,8 @@ import {
 import { icon } from '../icons.js';
 import { countUps, animateCharts, haptic } from '../anim.js';
 import { achievementsFor } from '../achievements.js';
+import { levelFor, forecast, getGoals, setGoals, monthLabel } from '../insights.js';
+import { recapMonthKey, recapSeen } from './recap.js';
 
 let _cache = null; // last-loaded data, for cheap rebuilds (e.g. after goal edits)
 
@@ -96,9 +98,13 @@ function build(businesses, assets, platforms, invoices) {
   const chartMax = Math.max(...m12.map(m => revByMonth[m.key] || 0), 1);
   const nowKey = tsMonthKey(new Date());
 
-  // ── Streaks + trophies ──
+  // ── Streaks, trophies, level, forecast, recap ──
   const ach = achievementsFor({ invoices, businesses });
   const freshIds = new Set(ach.fresh.map(m => m.id));
+  const lv = levelFor(ach.stats.total);
+  const fc = forecast({ invoices, businesses });
+  const recapKey = recapMonthKey();
+  const recapReady = paid.some(i => isoMonthKey(i.paidDate) === recapKey) && !recapSeen(recapKey);
 
   const content = document.querySelector('.page-content');
   content.innerHTML = `
@@ -112,9 +118,20 @@ function build(businesses, assets, platforms, invoices) {
           <a href="#/invoices/new" class="btn btn-primary btn-lg">${icon('plus', 17)} New Invoice</a>
           <a href="#/businesses/add" class="btn btn-secondary btn-lg">${icon('building2', 17)} Add Client</a>
         </div>
+        ${xpBar(lv)}
       </div>
       ${heroArt()}
     </section>
+
+    ${recapReady ? `
+    <a class="recap-banner" href="#/recap/${recapKey}">
+      <span class="recap-icon">${icon('video', 20, { strokeWidth: 2 })}</span>
+      <span class="recap-main">
+        <b>Your ${monthLabel(recapKey, { month: 'long' })} recap is ready</b>
+        <small>Total collected, MVP client, biggest job, trophies and more — in 30 seconds.</small>
+      </span>
+      <span class="btn btn-primary btn-sm">${icon('sparkle', 14)} Watch</span>
+    </a>` : ''}
 
     <!-- Sparkline stats -->
     <div class="spark-grid">
@@ -136,7 +153,10 @@ function build(businesses, assets, platforms, invoices) {
             <div class="section-title">Revenue Overview</div>
             <div class="section-sub">Collected per month · last 12 months</div>
           </div>
-          <span class="badge badge-category">${formatCurrency(Object.values(revByMonth).reduce((s, v) => s + v, 0))} total</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="badge badge-category">${formatCurrency(Object.values(revByMonth).reduce((s, v) => s + v, 0))} total</span>
+            ${paid.length ? `<a href="#/recap/${revByMonth[recapKey] ? recapKey : nowKey}" class="btn btn-ghost btn-sm" title="Watch the monthly recap">${icon('video', 15)} Recap</a>` : ''}
+          </div>
         </div>
         ${paid.length ? `
           <div class="rev-chart">
@@ -192,7 +212,7 @@ function build(businesses, assets, platforms, invoices) {
           ${lineItem('Expected MRR', formatCurrency(activeMRR))}
           ${lineItem('Net (incl. assets − costs)', formatCurrency(netThisMonth), netThisMonth >= 0 ? 'var(--green)' : 'var(--red)')}
         </div>
-        ${goalHtml(collected)}
+        ${goalLadder(fc)}
         <a href="#/monthly" class="btn btn-secondary btn-full" style="margin-top:auto">${icon('barChart', 16)} View full report</a>
       </div>
 
@@ -230,7 +250,7 @@ function build(businesses, assets, platforms, invoices) {
     ${trophiesCard(ach, freshIds)}
 
     <!-- Projection + portfolio tie-in -->
-    <div class="stats-grid" style="margin-top:4px">
+    <div class="stats-grid">
       <div class="dark-card" style="padding:20px">
         <div class="dark-card-label">${icon('trendingUp', 14)} Projected yearly</div>
         <div class="dark-card-value" style="font-size:28px;margin-top:14px">${formatCurrency(yearly)}</div>
@@ -419,69 +439,111 @@ function heroArt() {
     </svg>`;
 }
 
-// ── Monthly revenue goal (stored on this device) ─────────────
-
-function getGoal() {
-  try { const g = parseFloat(localStorage.getItem('pf-goal')); return g > 0 ? g : null; }
-  catch { return null; }
+// ── Level / XP bar (hero) ────────────────────────────────────
+function xpBar(lv) {
+  return `
+    <a class="xp-card" href="#/trophies" title="Lifetime collected revenue is your XP">
+      <div class="xp-head">
+        <span class="xp-level">${icon('medal', 14, { strokeWidth: 2.2 })} Level ${lv.level} · ${lv.name}</span>
+        <span class="xp-next num">${lv.next ? `${formatCurrency(lv.toNext)} to ${lv.next.name}` : 'Max level'}</span>
+      </div>
+      <div class="xp-track"><i data-w="${lv.pct}"></i></div>
+      <div class="xp-sub"><span class="num">${formatCurrency(lv.xp)}</span> collected all time · every payment adds XP</div>
+    </a>`;
 }
 
-function goalHtml(total) {
-  const goal = getGoal();
-  if (!goal) {
+// ── Goal ladder + forecast (goals stored on this device) ─────
+function goalLadder(fc) {
+  const { monthly, yearly } = fc;
+  const s = (n) => (n === 1 ? '' : 's');
+  const ladder = [];
+
+  if (monthly) {
+    let hint;
+    if (monthly.reached) hint = `Goal reached 🎉 · ${formatCurrency(monthly.collected - monthly.goal)} over`;
+    else {
+      const parts = [];
+      if (monthly.recurringDue > 0) parts.push(`${formatCurrency(monthly.recurringDue)} recurring still due`);
+      if (monthly.afterRecurring <= 0) parts.push('recurring payments cover the rest');
+      else if (monthly.jobs !== null) parts.push(`${monthly.jobs} more job${s(monthly.jobs)} like your ${formatCurrency(Math.round(monthly.avgJob))} average`);
+      else parts.push(`${formatCurrency(monthly.afterRecurring)} more to go`);
+      hint = parts.join(' · ');
+    }
+    ladder.push(goalRow('target', 'Monthly goal', monthly.goal, monthly.pct, hint, monthly.reached));
+  }
+
+  if (yearly) {
+    let hint;
+    if (yearly.reached) hint = `Yearly goal reached 🎉 · ${formatCurrency(yearly.ytd - yearly.goal)} over`;
+    else if (yearly.onTrack) hint = `At this pace you'll hit ${formatCurrency(Math.round(yearly.projected))} by December`;
+    else hint = `On pace for ${formatCurrency(Math.round(yearly.projected))} · need ${formatCurrency(Math.round(yearly.neededPerMonth))}/mo to hit it`;
+    ladder.push(goalRow('calendar', `${fc.year} goal`, yearly.goal, yearly.pct, hint, yearly.reached));
+  } else if (fc.ytd > 0) {
+    ladder.push(`
+      <div class="goal-forecast">${icon('trendingUp', 13)} At this pace you'll collect <b class="num">${formatCurrency(Math.round(fc.projected))}</b> in ${fc.year}</div>`);
+  }
+
+  if (!ladder.length) {
     return `
       <button class="btn btn-secondary btn-sm" id="goal-btn" style="margin-bottom:14px;align-self:flex-start">
-        ${icon('target', 14)} Set monthly goal
+        ${icon('target', 14)} Set goals
       </button>`;
   }
-  const pct = Math.min(100, Math.round((total / goal) * 100));
+  return `<div class="goal-box" id="goal-btn" title="Tap to edit goals">${ladder.join('')}</div>`;
+}
+
+function goalRow(ic, label, goal, pct, hint, reached) {
   return `
-    <div class="goal-box" id="goal-btn" title="Tap to edit goal">
+    <div class="goal-row">
       <div class="goal-head">
-        <span class="goal-name">${icon('target', 13)} Goal ${formatCurrency(goal)}</span>
-        <span class="goal-pct num" style="color:${pct >= 100 ? 'var(--green)' : 'var(--accent)'}">${pct}%${pct >= 100 ? ' 🎉' : ''}</span>
+        <span class="goal-name">${icon(ic, 13)} ${label} · ${formatCurrency(goal)}</span>
+        <span class="goal-pct num" style="color:${reached ? 'var(--green)' : 'var(--accent)'}">${pct}%</span>
       </div>
       <div class="bar-track" style="height:8px">
-        <div class="bar-fill" style="width:0%;background:linear-gradient(90deg,var(--accent-light),var(--accent))" data-w="${pct}"></div>
+        <div class="bar-fill" style="width:0%;background:${reached ? 'var(--green)' : 'linear-gradient(90deg,var(--accent-light),var(--accent))'}" data-w="${pct}"></div>
       </div>
+      <div class="goal-hint">${hint}</div>
     </div>`;
 }
 
 function openGoalModal() {
-  const goal = getGoal();
+  const goals = getGoals();
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
     <div class="modal">
-      <div class="modal-title" style="display:flex;align-items:center;gap:9px">${icon('target', 18)} Monthly Goal</div>
-      <div class="modal-desc">Set a revenue target for each month — the dashboard tracks what you've collected toward it.</div>
+      <div class="modal-title" style="display:flex;align-items:center;gap:9px">${icon('target', 18)} Your goals</div>
+      <div class="modal-desc">The dashboard tracks what you've collected toward each goal and forecasts where you'll land at your current pace.</div>
       <div class="form-group">
-        <label class="form-label">Goal amount ($)</label>
-        <input class="form-control" type="number" id="goal-input" min="1" step="1" placeholder="e.g. 2000" value="${goal ?? ''}" />
+        <label class="form-label">Monthly goal ($)</label>
+        <input class="form-control" type="number" id="goal-month" min="0" step="1" placeholder="e.g. 3000" value="${goals.monthly ?? ''}" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Yearly goal ($)</label>
+        <input class="form-control" type="number" id="goal-year" min="0" step="1" placeholder="e.g. 30000" value="${goals.yearly ?? ''}" />
       </div>
       <div class="modal-actions">
-        ${goal ? '<button class="btn btn-ghost" id="goal-clear" style="margin-right:auto;color:var(--red)">Remove</button>' : ''}
+        ${goals.monthly || goals.yearly ? '<button class="btn btn-ghost" id="goal-clear" style="margin-right:auto;color:var(--red)">Remove</button>' : ''}
         <button class="btn btn-secondary" id="goal-cancel">Cancel</button>
-        <button class="btn btn-primary" id="goal-save">Save Goal</button>
+        <button class="btn btn-primary" id="goal-save">Save Goals</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
-  const input = overlay.querySelector('#goal-input');
-  input.focus();
+  const monthEl = overlay.querySelector('#goal-month');
+  const yearEl = overlay.querySelector('#goal-year');
+  monthEl.focus();
 
   const rebuild = () => { overlay.remove(); if (_cache) build(_cache.businesses, _cache.assets, _cache.platforms, _cache.invoices); };
   overlay.querySelector('#goal-cancel').addEventListener('click', () => overlay.remove());
   overlay.querySelector('#goal-save').addEventListener('click', () => {
-    const v = parseFloat(input.value);
-    if (!(v > 0)) { input.focus(); return; }
-    try { localStorage.setItem('pf-goal', String(v)); } catch {}
+    const monthly = parseFloat(monthEl.value) || 0;
+    const yearly = parseFloat(yearEl.value) || 0;
+    if (!(monthly > 0) && !(yearly > 0)) { monthEl.focus(); return; }
+    setGoals({ monthly, yearly });
     haptic(12);
     rebuild();
   });
-  overlay.querySelector('#goal-clear')?.addEventListener('click', () => {
-    try { localStorage.removeItem('pf-goal'); } catch {}
-    rebuild();
-  });
+  overlay.querySelector('#goal-clear')?.addEventListener('click', () => { setGoals({ monthly: 0, yearly: 0 }); rebuild(); });
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 }
 

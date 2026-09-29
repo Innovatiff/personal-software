@@ -3,6 +3,7 @@ import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/n
 import { formatCurrency, formatShortDate } from '../utils.js';
 import { icon } from '../icons.js';
 import { achievementsFor, markSeen, GROUPS } from '../achievements.js';
+import { levelFor } from '../insights.js';
 import { animateCharts, countUps } from '../anim.js';
 
 /**
@@ -52,6 +53,7 @@ function build(a, freshIds) {
     : 'Set a monthly goal on the dashboard';
   const best = stats.bestMonth.total > 0 ? stats.bestMonth : null;
   const bestLabel = best ? new Date(Number(best.key.slice(0, 4)), Number(best.key.slice(5, 7)) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'No payments yet';
+  const lv = levelFor(stats.total);
 
   const content = document.querySelector('.page-content');
   content.innerHTML = `
@@ -61,6 +63,14 @@ function build(a, freshIds) {
     </div>
 
     <div class="streak-grid">
+      <div class="streak-card level-card">
+        <div class="streak-icon level">${icon('medal', 24, { strokeWidth: 2 })}</div>
+        <div style="min-width:0;flex:1">
+          <div class="streak-value">Level ${lv.level}<small>${lv.name}</small></div>
+          <div class="xp-track" style="margin:8px 0 6px"><i data-w="${lv.pct}"></i></div>
+          <div class="streak-sub"><span class="num">${formatCurrency(lv.xp)}</span> XP${lv.next ? ` · ${formatCurrency(lv.toNext)} to ${lv.next.name}` : ' · max level'}</div>
+        </div>
+      </div>
       <div class="streak-card">
         <div class="streak-icon ${streaks.growth > 0 ? 'hot' : ''}">${icon('flame', 24, { strokeWidth: 2 })}</div>
         <div style="min-width:0">

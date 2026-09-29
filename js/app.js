@@ -17,6 +17,7 @@ import { renderInvoices } from './pages/invoices.js';
 import { renderInvoiceDetail } from './pages/invoice-detail.js';
 import { renderNewInvoice } from './pages/new-invoice.js';
 import { renderTrophies } from './pages/trophies.js';
+import { renderRecap } from './pages/recap.js';
 import { renderNotFound } from './pages/not-found.js';
 import { initPWA } from './pwa.js';
 import { initTheme } from './theme.js';
@@ -70,6 +71,8 @@ onAuthStateChanged(auth, (user) => {
     .on('/platforms/:id/edit', guard((p) => renderAddPlatform(p)))
     .on('/monthly', guard(renderMonthly))
     .on('/trophies', guard(renderTrophies))
+    .on('/recap', guard(() => renderRecap({})))
+    .on('/recap/:key', guard((p) => renderRecap(p)))
     .on('/settings', guard(renderSettings))
     .on('/', () => {
       router.navigate(user ? '/dashboard' : '/login');

@@ -97,7 +97,9 @@ export function renderSettings() {
     payday({
       amount: 400, clientName: 'Demo Client', monthTotal: 2400, lastMonth: 1800,
       streaks: { growth: 3, growthLive: true, needed: 0, goal: 0, goalAmount: null },
-      badges: [], origin: { x: r.left + r.width / 2, y: r.top + r.height / 2 },
+      badges: [],
+      xp: { gained: 400, level: { level: 3, name: 'Freelancer', pct: 58, next: { name: 'Pro' }, index: 2 }, leveledUp: false },
+      origin: { x: r.left + r.width / 2, y: r.top + r.height / 2 },
     });
   });
 

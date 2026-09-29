@@ -9,6 +9,7 @@
 import { getInvoices, getBusinesses } from './db.js';
 import { isoMonthKey, tsMonthKey, lastMonths, formatCurrency } from './utils.js';
 import { payday } from './celebrate.js';
+import { levelFor } from './insights.js';
 
 const num = v => Number(v) || 0;
 const SEEN_KEY = 'inv-badges-seen';
@@ -274,11 +275,14 @@ export async function celebrateCollection({ amount, clientName, origin } = {}) {
   } catch {}
   const a = achievementsFor(data);
   markSeen(a.fresh.map(m => m.id));
+  const after = levelFor(a.stats.total);
+  const before = levelFor(a.stats.total - (Number(amount) || 0));
   payday({
     amount, clientName, origin,
     monthTotal: a.stats.thisMonth,
     lastMonth: a.stats.lastMonth,
     streaks: a.streaks,
     badges: a.fresh,
+    xp: { gained: Number(amount) || 0, level: after, leveledUp: after.index > before.index },
   });
 }

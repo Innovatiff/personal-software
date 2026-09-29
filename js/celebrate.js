@@ -116,8 +116,8 @@ export function chime() {
  * @param {Array}  o.badges        newly unlocked milestones
  * @param {{x:number,y:number}} o.origin  where the click happened
  */
-export function payday({ amount = 0, clientName = '', monthTotal = 0, lastMonth = 0, streaks = null, badges = [], origin } = {}) {
-  haptic([18, 40, 26, 40, 60]);
+export function payday({ amount = 0, clientName = '', monthTotal = 0, lastMonth = 0, streaks = null, badges = [], xp = null, origin } = {}) {
+  haptic(xp?.leveledUp ? [20, 40, 20, 40, 20, 40, 120] : [18, 40, 26, 40, 60]);
   chime();
 
   const ox = origin?.x ?? innerWidth / 2;
@@ -141,6 +141,14 @@ export function payday({ amount = 0, clientName = '', monthTotal = 0, lastMonth 
       const pct = Math.min(999, Math.round((monthTotal / streaks.goalAmount) * 100));
       chips.push(`<span class="pd-chip ${pct >= 100 ? 'goal' : ''}">${icon('target', 13, { strokeWidth: 2.2 })} ${pct >= 100 ? 'Goal reached' : pct + '% of goal'}</span>`);
     }
+    if (xp) {
+      chips.push(`<span class="pd-chip xp">${icon('medal', 13, { strokeWidth: 2.2 })} +${Math.round(xp.gained).toLocaleString('en-US')} XP · Level ${xp.level.level} ${xp.level.name}${xp.level.next ? ` · ${xp.level.pct}%` : ''}</span>`);
+    }
+    const levelHtml = xp?.leveledUp ? `
+      <div class="pd-levelup">
+        <span class="pd-levelup-icon">${icon('medal', 16, { strokeWidth: 2.2 })}</span>
+        <span>Level up! You're now <b>Level ${xp.level.level} · ${xp.level.name}</b></span>
+      </div>` : '';
     const badgeHtml = badges.length ? `
       <a class="pd-badges" href="#/trophies">
         <span class="pd-badge-icon">${icon('trophy', 15, { strokeWidth: 2.2 })}</span>
@@ -154,6 +162,7 @@ export function payday({ amount = 0, clientName = '', monthTotal = 0, lastMonth 
         <div class="pd-title">Payday! <span class="pd-amt num">+${formatCurrency(amount)}</span></div>
         <div class="pd-sub">${clientName ? `from ${escHtml(clientName)} · ` : ''}<b class="num">${formatCurrency(monthTotal)}</b> collected this month${delta !== null ? ` · <span class="${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '↑' : '↓'} ${Math.abs(delta)}% vs last month</span>` : ''}</div>
         ${chips.length ? `<div class="pd-chips">${chips.join('')}</div>` : ''}
+        ${levelHtml}
         ${badgeHtml}
       </div>
       <button class="pd-close" aria-label="Dismiss">${icon('x', 15)}</button>`;
@@ -166,8 +175,9 @@ export function payday({ amount = 0, clientName = '', monthTotal = 0, lastMonth 
     };
     el.querySelector('.pd-close').addEventListener('click', close);
     el.querySelector('.pd-badges')?.addEventListener('click', close);
-    setTimeout(close, badges.length ? 9000 : 6500);
+    setTimeout(close, badges.length || xp?.leveledUp ? 9000 : 6500);
   };
+  if (xp?.leveledUp) setTimeout(() => confetti({ x: innerWidth / 2, y: 90, count: 110, spread: 80 }), 1250);
 
   if (reduceMotion()) { showBanner(); return; }
 

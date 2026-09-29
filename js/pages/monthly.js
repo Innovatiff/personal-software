@@ -3,9 +3,12 @@ import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/n
 import { categoryMeta, serviceMeta, formatCurrency, computeMRR, isThisMonthISO } from '../utils.js';
 import { platformMeta } from './platforms.js';
 import { icon } from '../icons.js';
-import { animateCharts } from '../anim.js';
+import { animateCharts, countUps } from '../anim.js';
 import { recapMonthKey } from './recap.js';
 import { monthLabel } from '../insights.js';
+import { incomeBalance, computeRecords } from '../coach.js';
+import { computeStats, computeStreaks } from '../achievements.js';
+import { balanceCard, recordsCard } from '../components/coach-cards.js';
 
 export async function renderMonthly() {
   const app = document.getElementById('app');
@@ -91,6 +94,11 @@ function build(assets, platforms, businesses, invoices) {
     ${(totalEarnings > 0 || totalExpenses > 0) ? evseBar(totalEarnings, totalExpenses, net) : ''}
 
     <div class="grid-2" style="margin-bottom:24px">
+      ${balanceCard(incomeBalance({ invoices, assets }))}
+      ${recordsCard(computeRecords({ invoices }, computeStreaks(computeStats({ invoices, businesses }))))}
+    </div>
+
+    <div class="grid-2" style="margin-bottom:24px">
       ${breakdownCard('Recurring Earnings', 'trendingUp', 'var(--green)', formatCurrency(totalEarnings),
         earnItems, totalEarnings, 'var(--green)', 'No earnings yet — add clients or assets.')}
       ${breakdownCard('Monthly Expenses', 'trendingDown', 'var(--red)', formatCurrency(totalExpenses),
@@ -130,6 +138,7 @@ function build(assets, platforms, businesses, invoices) {
   `;
 
   animateCharts(content);
+  countUps(content);
 }
 
 function evseBar(earn, exp, net) {

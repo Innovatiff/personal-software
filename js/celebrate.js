@@ -116,7 +116,7 @@ export function chime() {
  * @param {Array}  o.badges        newly unlocked milestones
  * @param {{x:number,y:number}} o.origin  where the click happened
  */
-export function payday({ amount = 0, clientName = '', monthTotal = 0, lastMonth = 0, streaks = null, badges = [], xp = null, origin } = {}) {
+export function payday({ amount = 0, clientName = '', monthTotal = 0, lastMonth = 0, streaks = null, badges = [], xp = null, records = [], origin } = {}) {
   haptic(xp?.leveledUp ? [20, 40, 20, 40, 20, 40, 120] : [18, 40, 26, 40, 60]);
   chime();
 
@@ -132,6 +132,7 @@ export function payday({ amount = 0, clientName = '', monthTotal = 0, lastMonth 
     el.className = 'payday';
     const delta = lastMonth > 0 ? Math.round(((monthTotal - lastMonth) / lastMonth) * 100) : null;
     const chips = [];
+    records.slice(0, 2).forEach(r => chips.push(`<span class="pd-chip record">${icon('trophy', 13, { strokeWidth: 2.2 })} ${r.label}</span>`));
     if (streaks?.growth > 0) {
       chips.push(`<span class="pd-chip hot">${icon('flame', 13, { strokeWidth: 2.2 })} ${streaks.growth}-month growth streak</span>`);
     } else if (streaks && streaks.needed > 0) {
@@ -175,7 +176,7 @@ export function payday({ amount = 0, clientName = '', monthTotal = 0, lastMonth 
     };
     el.querySelector('.pd-close').addEventListener('click', close);
     el.querySelector('.pd-badges')?.addEventListener('click', close);
-    setTimeout(close, badges.length || xp?.leveledUp ? 9000 : 6500);
+    setTimeout(close, badges.length || xp?.leveledUp || records.length ? 9000 : 6500);
   };
   if (xp?.leveledUp) setTimeout(() => confetti({ x: innerWidth / 2, y: 90, count: 110, spread: 80 }), 1250);
 

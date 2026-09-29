@@ -1,4 +1,4 @@
-import { getBusinesses, deleteBusiness, updateBusiness, addInvoice, nextInvoiceNumber } from '../db.js';
+import { getBusinesses, deleteBusiness, updateBusiness, addInvoice, nextInvoiceNumber, getInvoices } from '../db.js';
 import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/navbar.js';
 import { auth } from '../firebase-config.js';
 import {
@@ -11,8 +11,11 @@ import { toast } from '../toast.js';
 import { haptic } from '../anim.js';
 import { celebrateCollection } from '../achievements.js';
 import { originOf } from '../celebrate.js';
+import { clientHealth } from '../coach.js';
+import { openReminder } from '../reminders.js';
 
 let _all = [];
+let _invoices = [];
 let _state = { status: 'All', search: '' };
 
 export async function renderBusinesses() {
@@ -35,7 +38,9 @@ export async function renderBusinesses() {
   `;
   attachNavbarEvents();
 
-  try { _all = await getBusinesses(); } catch (err) { console.error(err); _all = []; }
+  try {
+    [_all, _invoices] = await Promise.all([getBusinesses(), getInvoices().catch(() => [])]);
+  } catch (err) { console.error(err); _all = []; }
   renderList();
 }
 
@@ -124,6 +129,25 @@ function renderList() {
   content.querySelectorAll('[data-del]').forEach(btn => {
     btn.addEventListener('click', (e) => { e.stopPropagation(); confirmDelete(btn.dataset.del, btn.dataset.name); });
   });
+  content.querySelectorAll('[data-remind]').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); remind(btn.dataset.remind); });
+  });
+}
+
+function remind(id) {
+  const b = _all.find(x => x.id === id);
+  if (!b) return;
+  const p = paymentInfo(b.dueDay, b.lastPaidDate, b.createdAt);
+  openReminder({
+    clientName: b.name, amount: computeMRR(b.price, b.period, b.users), dueDate: p.nextDue, service: b.service,
+    email: b.email, phone: b.phone, issuer: auth.currentUser?.displayName || '',
+    onSent: async (channel) => {
+      const lastReminder = { date: todayISO(), channel };
+      try { await updateBusiness(b.id, { lastReminder }); } catch {}
+      b.lastReminder = lastReminder;
+      renderList();
+    },
+  });
 }
 
 function bizRow(b) {
@@ -131,12 +155,16 @@ function bizRow(b) {
   const users = Math.max(1, Number(b.users) || 1);
   const mrr = computeMRR(b.price, b.period, users);
   const p = paymentInfo(b.dueDay, b.lastPaidDate, b.createdAt);
+  const h = clientHealth(b, _invoices);
   return `
     <div class="biz-row biz-cols">
       <div class="biz-cell biz-cell-name">
         <div class="biz-name">
           <div class="biz-name-icon" style="background:${meta.bg};color:${meta.color}">${icon(meta.iconName, 18)}</div>
-          <span class="biz-name-text">${escHtml(b.name)}</span>
+          <div style="min-width:0">
+            <span class="biz-name-text">${escHtml(b.name)}</span>
+            <div class="health ${h.cls}" title="${escAttr(h.notes.join(' · '))}">${icon('heartPulse', 12, { strokeWidth: 2.2 })} ${h.score === null ? 'Inactive' : `${h.score} · ${h.label}`}</div>
+          </div>
         </div>
       </div>
       <div class="biz-cell" data-label="Service">
@@ -164,8 +192,12 @@ function bizRow(b) {
           <div class="pay-date">${b.dueDay ? 'Due ' + ordinal(b.dueDay) + ' monthly' : '—'}</div>
           <div class="pay-status ${p.cls}"><span class="badge-dot"></span>${p.label}</div>
           ${p.nextDue ? `<div class="pay-sub">Next: ${formatDate(p.nextDue)}</div>` : ''}
-          <button class="btn btn-sm btn-paid" data-paid="${b.id}" style="margin-top:7px">${icon('check', 14)} Mark Paid</button>
+          <div class="pay-actions">
+            <button class="btn btn-sm btn-paid" data-paid="${b.id}">${icon('check', 14)} Mark Paid</button>
+            ${(p.key === 'overdue' || p.key === 'due') && b.status !== 'Inactive' ? `<button class="btn btn-sm btn-ghost" data-remind="${b.id}" title="Send a payment reminder">${icon('bell', 14)} Remind</button>` : ''}
+          </div>
           ${b.lastPaidDate ? `<div class="pay-sub">Last paid ${formatShortDate(b.lastPaidDate)}</div>` : ''}
+          ${b.lastReminder?.date ? `<div class="pay-sub">Reminded ${formatShortDate(b.lastReminder.date)}</div>` : ''}
         </div>
       </div>
       <div class="biz-cell" data-label="Status">

@@ -6,6 +6,7 @@ import { toast } from '../toast.js';
 import { router } from '../router.js';
 import { celebrateCollection } from '../achievements.js';
 import { originOf } from '../celebrate.js';
+import { openReminder } from '../reminders.js';
 
 export async function renderInvoiceDetail(params) {
   const { id } = params;
@@ -52,7 +53,8 @@ function render(inv) {
     <div class="invoice-actions no-print">
       <button class="btn btn-ghost btn-sm" onclick="location.hash='#/invoices'">${icon('arrowLeft', 15)} Back</button>
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-        ${!paid ? `<button class="btn btn-paid btn-sm" id="paid-btn">${icon('check', 15)} Mark as paid</button>` : ''}
+        ${!paid ? `<button class="btn btn-paid btn-sm" id="paid-btn">${icon('check', 15)} Mark as paid</button>
+        <button class="btn btn-secondary btn-sm" id="remind-btn" title="${inv.lastReminder?.date ? 'Reminded ' + formatShortDate(inv.lastReminder.date) : 'Send a payment reminder'}">${icon('bell', 15)} Remind${inv.lastReminder?.date ? ' again' : ''}</button>` : ''}
         ${navigator.share ? `<button class="btn btn-secondary btn-sm" id="share-btn">${icon('share', 15)} Share</button>` : ''}
         <button class="btn btn-secondary btn-sm" id="print-btn">${icon('download', 15)} Print / PDF</button>
         <button class="btn btn-danger btn-sm btn-icon" id="del-btn" title="Delete">${icon('trash', 15)}</button>
@@ -142,6 +144,17 @@ function render(inv) {
       title: `Invoice ${inv.number || ''} · Innovatif`.trim(),
       text: `Invoice ${inv.number} · ${inv.clientName} · ${formatCurrency(total)} — ${paid ? 'PAID' : 'UNPAID'}`,
     }).catch(() => {});
+  });
+  document.getElementById('remind-btn')?.addEventListener('click', () => {
+    openReminder({
+      clientName: inv.clientName, amount: total, dueDate: inv.issueDate, number: inv.number,
+      service: oneTime ? '' : inv.service, issuer: inv.issuerName || '',
+      onSent: async (channel) => {
+        const lastReminder = { date: todayISO(), channel };
+        try { await updateInvoice(inv.id, { lastReminder }); } catch {}
+        render({ ...inv, lastReminder });
+      },
+    });
   });
   document.getElementById('paid-btn')?.addEventListener('click', async (e) => {
     const origin = originOf(e.currentTarget);

@@ -62,6 +62,19 @@ export async function renderAddBusiness(params) {
 
             <div class="form-row">
               <div class="form-group">
+                <label class="form-label">Contact Email</label>
+                <input class="form-control" type="email" id="email" placeholder="billing@client.com" value="${escAttr(existing?.email)}" />
+                <div class="form-hint">Prefills payment reminders</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">WhatsApp / Phone</label>
+                <input class="form-control" type="tel" id="phone" placeholder="+1 555 010 2030" value="${escAttr(existing?.phone)}" />
+                <div class="form-hint">Optional, for one-tap reminders</div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
                 <label class="form-label">Price per user ($) *</label>
                 <input class="form-control" type="number" id="price" placeholder="0.00" min="0" step="0.01" required value="${existing?.price ?? ''}" />
                 <div class="form-hint">Charge per user, per period</div>
@@ -159,6 +172,8 @@ export async function renderAddBusiness(params) {
       service: serviceEl.value,
       status: document.getElementById('status').value,
       description: document.getElementById('description').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
       price: parseFloat(priceEl.value) || 0,
       users: Math.max(1, parseInt(usersEl.value, 10) || 1),
       period: periodEl.value,

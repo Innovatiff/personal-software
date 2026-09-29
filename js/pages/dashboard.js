@@ -1,11 +1,15 @@
-import { getBusinesses, getAssets, getPlatforms, getInvoices } from '../db.js';
+import { getBusinesses, getAssets, getPlatforms, getInvoices, updateBusiness } from '../db.js';
 import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/navbar.js';
 import { auth } from '../firebase-config.js';
 import {
   formatCurrency, computeMRR, serviceMeta, businessStatusBadge,
   BUSINESS_STATUSES, isThisMonthISO, isoMonthKey, tsMonthKey, lastMonths,
-  sparkline, formatShortDate
+  sparkline, formatShortDate, paymentInfo, todayISO
 } from '../utils.js';
+import { weeklyFocus, setFocusDone, incomeBalance, computeRecords } from '../coach.js';
+import { balanceCard } from '../components/coach-cards.js';
+import { openReminder } from '../reminders.js';
+import { confetti } from '../celebrate.js';
 import { icon } from '../icons.js';
 import { countUps, animateCharts, haptic } from '../anim.js';
 import { achievementsFor } from '../achievements.js';
@@ -105,6 +109,10 @@ function build(businesses, assets, platforms, invoices) {
   const fc = forecast({ invoices, businesses });
   const recapKey = recapMonthKey();
   const recapReady = paid.some(i => isoMonthKey(i.paidDate) === recapKey) && !recapSeen(recapKey);
+  const focus = weeklyFocus({ businesses, invoices }, { streaks: ach.streaks, forecast: fc, locked: ach.locked });
+  const bal = incomeBalance({ invoices, assets });
+  const records = computeRecords({ invoices }, ach.streaks);
+  const bestMonthNow = collected > 0 && !!records.find(r => r.id === 'month')?.isNew;
 
   const content = document.querySelector('.page-content');
   content.innerHTML = `
@@ -136,13 +144,20 @@ function build(businesses, assets, platforms, invoices) {
     <!-- Sparkline stats -->
     <div class="spark-grid">
       ${sparkCard('wallet', 'var(--green-soft)', 'var(--green)', formatCurrency(collected), collected, 'cur', 'Collected this month',
-        revDelta === null ? 'vs last month' : `${revDelta >= 0 ? '↑' : '↓'} ${Math.abs(revDelta)}% vs last month`, revDelta === null ? '' : (revDelta >= 0 ? 'up' : 'down'), revSeries, 'var(--green)')}
+        revDelta === null ? 'vs last month' : `${revDelta >= 0 ? '↑' : '↓'} ${Math.abs(revDelta)}% vs last month`, revDelta === null ? '' : (revDelta >= 0 ? 'up' : 'down'), revSeries, 'var(--green)',
+        bestMonthNow ? `<span class="rec-tag">${icon('trophy', 11, { strokeWidth: 2.4 })} Best month</span>` : '')}
       ${sparkCard('trendingUp', 'var(--purple-soft)', 'var(--accent)', formatCurrency(activeMRR), activeMRR, 'cur', 'Recurring MRR',
         `${counts['Active']} active client${counts['Active'] === 1 ? '' : 's'}`, 'up', mrrSeries, 'var(--accent)')}
       ${sparkCard('building2', 'var(--blue-soft)', 'var(--blue)', String(businesses.length), businesses.length, 'int', 'Total clients',
         `${activeRate}% active`, activeRate >= 50 ? 'up' : '', clientSeries, 'var(--blue)')}
       ${sparkCard('receipt', unpaid ? 'var(--yellow-soft)' : 'var(--subtle)', unpaid ? 'var(--yellow)' : 'var(--text-secondary)', String(invoices.length), invoices.length, 'int', 'Invoices',
         unpaid ? `${formatCurrency(unpaid)} outstanding` : 'All settled', unpaid ? 'down' : 'up', invSeries, unpaid ? 'var(--yellow)' : 'var(--text-muted)')}
+    </div>
+
+    <!-- Weekly focus + income balance -->
+    <div class="dash-row c">
+      ${focusCard(focus)}
+      ${balanceCard(bal)}
     </div>
 
     <!-- Revenue overview + top clients -->
@@ -205,7 +220,7 @@ function build(businesses, assets, platforms, invoices) {
       <div class="best-asset-card tm-card">
         <div class="best-asset-label">${icon('wallet', 14)} This Month</div>
         <div class="best-asset-income" data-count="${collected}" data-fmt="cur">${formatCurrency(collected)}</div>
-        ${streakChips(ach.streaks, lastMonthRev)}
+        ${streakChips(ach.streaks, lastMonthRev, bestMonthNow)}
         <div class="tm-lines">
           ${lineItem('Recurring payments', formatCurrency(recurringThisMonth))}
           ${lineItem('One-time services', formatCurrency(oneTimeThisMonth))}
@@ -266,16 +281,77 @@ function build(businesses, assets, platforms, invoices) {
   animateCharts(content);
   const goalBtn = content.querySelector('#goal-btn');
   if (goalBtn) goalBtn.addEventListener('click', openGoalModal);
+
+  // Weekly focus: check-offs and one-tap reminders
+  const rebuild = () => { if (_cache) build(_cache.businesses, _cache.assets, _cache.platforms, _cache.invoices); };
+  content.querySelectorAll('[data-focus]').forEach(btn => btn.addEventListener('click', () => {
+    const item = focus.items.find(i => i.id === btn.dataset.focus);
+    if (!item) return;
+    const nowDone = item.state === 'open';
+    setFocusDone(focus.key, item.id, nowDone);
+    haptic(nowDone ? 12 : 6);
+    if (nowDone && focus.completed + 1 === focus.total) confetti({ x: innerWidth / 2, y: 200, count: 90, spread: 75 });
+    rebuild();
+  }));
+  content.querySelectorAll('[data-remind-biz]').forEach(btn => btn.addEventListener('click', () => {
+    const b = businesses.find(x => x.id === btn.dataset.remindBiz);
+    if (!b) return;
+    const p = paymentInfo(b.dueDay, b.lastPaidDate, b.createdAt);
+    openReminder({
+      clientName: b.name, amount: computeMRR(b.price, b.period, b.users), dueDate: p.nextDue, service: b.service,
+      email: b.email, phone: b.phone, issuer: auth.currentUser?.displayName || '',
+      onSent: async (channel) => {
+        const lastReminder = { date: todayISO(), channel };
+        try { await updateBusiness(b.id, { lastReminder }); } catch {}
+        b.lastReminder = lastReminder;
+        setFocusDone(focus.key, `overdue:${b.id}`, true);
+        rebuild();
+      },
+    });
+  }));
+}
+
+// ── Weekly focus card ────────────────────────────────────────
+function focusCard(f) {
+  const pct = f.total ? Math.round((f.completed / f.total) * 100) : 0;
+  return `
+    <div class="chart-card focus-card ${f.allDone ? 'complete' : ''}">
+      <div class="section-header">
+        <div>
+          <div class="section-title">This week's focus</div>
+          <div class="section-sub">${f.range.label} · ${f.completed} of ${f.total} done</div>
+        </div>
+        <div class="focus-ring" style="--v:${pct}"><span class="num">${f.completed}/${f.total}</span></div>
+      </div>
+      ${f.items.length ? `
+        <div class="focus-list">
+          ${f.items.map((it, i) => `
+            <div class="focus-item ${it.state}" style="animation-delay:${i * 0.05}s">
+              <button class="focus-check" data-focus="${it.id}" aria-label="${it.state === 'open' ? 'Mark done' : 'Mark not done'}">${icon(it.state === 'open' ? 'circle' : 'checkCircle', 22, { strokeWidth: 2 })}</button>
+              <div class="focus-icon ${it.tone}">${icon(it.icon, 16)}</div>
+              <div class="focus-main">
+                <div class="focus-title">${escHtml(it.title)}</div>
+                <div class="focus-sub">${it.state === 'resolved' ? 'Resolved — nice work' : escHtml(it.sub)}</div>
+              </div>
+              ${it.state === 'open' ? (it.remind
+                ? `<button class="btn btn-secondary btn-sm" data-remind-biz="${it.remind}">${icon('bell', 14)} Remind</button>`
+                : `<a class="btn btn-ghost btn-sm" href="${it.href}">${escHtml(it.cta)}</a>`) : ''}
+            </div>`).join('')}
+        </div>
+        ${f.allDone ? `<div class="focus-done">${icon('partyPopper', 16)} Week complete. Enjoy the rest of it.</div>` : ''}`
+      : `<div class="focus-empty">${icon('checkCircle', 18)} All clear. Add clients and jobs to get weekly suggestions.</div>`}
+    </div>`;
 }
 
 // ── Pieces ───────────────────────────────────────────────────
 
-function sparkCard(ic, tint, color, value, raw, fmt, label, deltaText, deltaCls, series, lineColor) {
+function sparkCard(ic, tint, color, value, raw, fmt, label, deltaText, deltaCls, series, lineColor, tag = '') {
   return `
     <div class="spark-card">
       <div class="spark-top">
         <div class="spark-icon" style="background:${tint};color:${color}">${icon(ic, 18)}</div>
         <div class="spark-label">${label}</div>
+        ${tag}
       </div>
       <div class="spark-body">
         <div class="spark-main">
@@ -336,8 +412,11 @@ function snapshot(ic, color, label, value, sub, href, valueClass = '') {
 }
 
 // ── Streak chips (This Month card) ───────────────────────────
-function streakChips(s, lastMonth) {
+function streakChips(s, lastMonth, bestMonthNow = false) {
   const chips = [];
+  if (bestMonthNow) {
+    chips.push(`<span class="streak-chip gold" title="Your highest-earning month so far">${icon('trophy', 13, { strokeWidth: 2.2 })} Best month ever</span>`);
+  }
   if (s.growth > 0) {
     chips.push(`<span class="streak-chip hot" title="Consecutive months beating the month before">${icon('flame', 13, { strokeWidth: 2.2 })} ${s.growth}-month growth streak${s.growthLive ? '' : ` · ${formatCurrency(s.needed)} to keep it`}</span>`);
   } else if (lastMonth > 0 && s.needed > 0) {

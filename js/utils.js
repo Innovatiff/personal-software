@@ -151,7 +151,7 @@ export function todayISO() {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
-function parseISO(iso) {
+export function parseISO(iso) {
   if (!iso) return null;
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(y, (m || 1) - 1, d || 1);
@@ -171,7 +171,7 @@ export function ordinal(n) {
 }
 
 /** The occurrence of a day-of-month in a given month, clamped to month length. */
-function dayOccurrence(dueDay, year, monthIndex) {
+export function dayOccurrence(dueDay, year, monthIndex) {
   const lastDay = new Date(year, monthIndex + 1, 0).getDate();
   return new Date(year, monthIndex, Math.min(dueDay, lastDay));
 }

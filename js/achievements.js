@@ -7,9 +7,10 @@
 // announces genuinely new ones).
 // ============================================
 import { getInvoices, getBusinesses } from './db.js';
-import { isoMonthKey, tsMonthKey, lastMonths, formatCurrency } from './utils.js';
+import { isoMonthKey, tsMonthKey, lastMonths, formatCurrency, todayISO } from './utils.js';
 import { payday } from './celebrate.js';
 import { levelFor } from './insights.js';
+import { newRecordsAfter } from './coach.js';
 
 const num = v => Number(v) || 0;
 const SEEN_KEY = 'inv-badges-seen';
@@ -277,12 +278,21 @@ export async function celebrateCollection({ amount, clientName, origin } = {}) {
   markSeen(a.fresh.map(m => m.id));
   const after = levelFor(a.stats.total);
   const before = levelFor(a.stats.total - (Number(amount) || 0));
+
+  // Did this payment set a personal record? Compare against the data without it.
+  const amt = Number(amount) || 0, today = todayISO();
+  const idx = data.invoices.findIndex(i => i.status !== 'Unpaid' && i.paidDate === today && i.clientName === clientName && Math.abs((Number(i.amount) || 0) - amt) < 0.005);
+  const records = idx >= 0
+    ? newRecordsAfter({ invoices: data.invoices.filter((_, k) => k !== idx) }, { invoices: data.invoices }, a.streaks)
+    : [];
+
   payday({
     amount, clientName, origin,
     monthTotal: a.stats.thisMonth,
     lastMonth: a.stats.lastMonth,
     streaks: a.streaks,
     badges: a.fresh,
-    xp: { gained: Number(amount) || 0, level: after, leveledUp: after.index > before.index },
+    records,
+    xp: { gained: amt, level: after, leveledUp: after.index > before.index },
   });
 }

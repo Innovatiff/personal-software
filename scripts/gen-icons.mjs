@@ -64,14 +64,13 @@ function over(rgba, idx, r, g, b, a) {
 // ── draw one icon ──
 function makeIcon(size, { rounded, glyphScale = 1 }) {
   const rgba = Buffer.alloc(size * size * 4);
-  const top = [56, 217, 150], bot = [23, 138, 94];   // #38d996 -> #178a5e
+  const top = [26, 26, 34], bot = [8, 8, 12];   // near-black tile with a soft top light
   const radius = rounded ? size * 0.225 : 0;
   const hx = size / 2, hy = size / 2;
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const idx = (y * size + x) * 4;
-      // rounded-rect signed distance for the tile alpha
       let alpha = 1;
       if (rounded) {
         const qx = Math.abs(x + 0.5 - hx) - (hx - radius);
@@ -79,7 +78,7 @@ function makeIcon(size, { rounded, glyphScale = 1 }) {
         const outside = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - radius;
         alpha = clamp01(0.5 - outside);
       }
-      const t = clamp01((x + y) / (2 * size));
+      const t = clamp01(y / size);
       const R = Math.round(top[0] + (bot[0] - top[0]) * t);
       const G = Math.round(top[1] + (bot[1] - top[1]) * t);
       const B = Math.round(top[2] + (bot[2] - top[2]) * t);
@@ -87,41 +86,26 @@ function makeIcon(size, { rounded, glyphScale = 1 }) {
     }
   }
 
-  // glyph in a 32-unit grid, centered, scaled
+  // "V" chevron in a 32-unit grid, centered, scaled
   const g = size / 32 * glyphScale;
   const off = (size - 32 * g) / 2;
   const gx = u => off + u * g;
   const gy = v => off + v * g;
-  const cx = gx(16), cyD = gy(11.5), wx = 7 * g, wy = 4 * g;      // top diamond
-  const stroke = 1.75 * g, half = stroke / 2;
+  const stroke = 3.4 * g, half = stroke / 2;
   const aa = Math.max(1, g * 0.9);
-
-  const chev = [
-    { pts: [[9, 16], [16, 20], [23, 16]], op: 0.62 },
-    { pts: [[9, 20.5], [16, 24.5], [23, 20.5]], op: 0.38 },
+  const segs = [
+    [[8.6, 10.2], [16, 22.2]],
+    [[23.4, 10.2], [16, 22.2]],
   ];
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const idx = (y * size + x) * 4;
       const px = x + 0.5, py = y + 0.5;
-
-      // filled top diamond
-      const dv = Math.abs(px - cx) / wx + Math.abs(py - cyD) / wy;
-      if (dv <= 1 + aa / wx) {
-        const cov = clamp01((1 - dv) * wx / aa + 0.5);
-        if (cov > 0) over(rgba, idx, 255, 255, 255, cov * 0.97);
-      }
-      // chevrons
-      for (const c of chev) {
-        let dmin = Infinity;
-        for (let i = 0; i < c.pts.length - 1; i++) {
-          const a = c.pts[i], b = c.pts[i + 1];
-          dmin = Math.min(dmin, distToSeg(px, py, gx(a[0]), gy(a[1]), gx(b[0]), gy(b[1])));
-        }
-        const cov = clamp01((half - dmin) / aa + 0.5);
-        if (cov > 0) over(rgba, idx, 255, 255, 255, cov * c.op);
-      }
+      let dmin = Infinity;
+      for (const [a, b] of segs) dmin = Math.min(dmin, distToSeg(px, py, gx(a[0]), gy(a[1]), gx(b[0]), gy(b[1])));
+      const cov = clamp01((half - dmin) / aa + 0.5);
+      if (cov > 0) over(rgba, idx, 255, 255, 255, cov);
     }
   }
   return encodePNG(size, size, rgba);

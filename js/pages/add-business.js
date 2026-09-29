@@ -15,12 +15,12 @@ export async function renderAddBusiness(params) {
   document.getElementById('app').innerHTML = `
     ${renderSidebar('businesses')}
     <div class="main-content">
-      ${renderTopbar(editId ? 'Edit Business' : 'Add Business', { addLabel: 'Add Business', addHash: '/businesses/add' })}
+      ${renderTopbar(editId ? 'Edit Client' : 'Add Client', { noAdd: true })}
       <div class="page-content">
         <div class="page-header" style="display:flex;align-items:center;gap:12px">
           <button class="btn btn-ghost btn-sm btn-icon" onclick="history.back()">${icon('arrowLeft', 16)}</button>
           <div>
-            <h1 class="page-title">${editId ? 'Edit Business' : 'Register Business'}</h1>
+            <h1 class="page-title">${editId ? 'Edit Client' : 'Register Client'}</h1>
             <p class="page-desc">${editId ? 'Update client details' : 'Add a client paying setup + recurring fees'}</p>
           </div>
         </div>

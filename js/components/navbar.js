@@ -6,23 +6,21 @@ import { icon, brandMark } from '../icons.js';
 import { wireInstallButtons } from '../pwa.js';
 import { currentTheme, toggleTheme } from '../theme.js';
 import { haptic } from '../anim.js';
+import { initGlobalSearch } from '../search.js';
 
 export function renderSidebar(activePage) {
   const user = auth.currentUser;
   const initial = user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?';
-  const name = user?.displayName || 'Portfolio Owner';
+  const name = user?.displayName || 'Innovatif';
   const email = user?.email || '';
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', hash: '/dashboard' },
-    { id: 'businesses', label: 'Businesses', icon: 'building2', hash: '/businesses' },
+    { id: 'businesses', label: 'Clients', icon: 'building2', hash: '/businesses' },
     { id: 'invoices', label: 'Invoices', icon: 'receipt', hash: '/invoices' },
-    { id: 'assets', label: 'My Assets', icon: 'layers', hash: '/assets' },
+    { id: 'assets', label: 'Assets', icon: 'layers', hash: '/assets' },
     { id: 'platforms', label: 'Expenses', icon: 'server', hash: '/platforms' },
-    { id: 'monthly', label: 'Monthly Overview', icon: 'wallet', hash: '/monthly' },
-  ];
-
-  const bottomItems = [
+    { id: 'monthly', label: 'Reports', icon: 'barChart', hash: '/monthly' },
     { id: 'settings', label: 'Settings', icon: 'settings', hash: '/settings' },
   ];
 
@@ -36,24 +34,27 @@ export function renderSidebar(activePage) {
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <a class="sidebar-logo" href="#/dashboard">
-          ${brandMark(30)}
-          <span style="font-size:16px">Portfolio</span>
+          ${brandMark(36)}
+          <span class="brand-text">
+            <span class="brand-name">Innovatif</span>
+            <span class="brand-tag">Design. Build. Bill.</span>
+          </span>
         </a>
       </div>
       <nav class="sidebar-nav">
-        <div class="nav-section-label">Menu</div>
         ${navItems.map(navLink).join('')}
-        <div class="nav-section-label">Account</div>
-        ${bottomItems.map(navLink).join('')}
         <button class="nav-item" id="logout-btn">
           <span class="nav-icon">${icon('logout', 18)}</span>
           Sign Out
         </button>
       </nav>
       <div class="sidebar-footer">
-        <button class="install-btn" data-install>
-          ${icon('download', 16)} Install app
-        </button>
+        <div class="install-card" data-install role="button" tabindex="0">
+          <div class="ic-icon">${icon('download', 17)}</div>
+          <div class="ic-title">Get the app</div>
+          <div class="ic-sub">Install Innovatif on your phone or desktop for the full experience.</div>
+          <span class="ic-btn">Install</span>
+        </div>
         <div class="user-info" onclick="location.hash='#/settings'">
           <div class="user-avatar">${initial}</div>
           <div class="user-details">
@@ -75,7 +76,7 @@ function renderBottomNav(activePage) {
     { id: 'businesses', label: 'Clients', icon: 'building2', hash: '/businesses' },
     { id: 'invoices', label: 'Invoices', icon: 'receipt', hash: '/invoices' },
     { id: 'platforms', label: 'Expenses', icon: 'server', hash: '/platforms' },
-    { id: 'monthly', label: 'Monthly', icon: 'wallet', hash: '/monthly' },
+    { id: 'monthly', label: 'Reports', icon: 'barChart', hash: '/monthly' },
   ];
   return `
     <nav class="bottom-nav">
@@ -102,8 +103,9 @@ function openQuickAdd() {
     <div class="sheet">
       <div class="sheet-handle"></div>
       <div class="sheet-title">Quick add</div>
-      ${item('building2', 'var(--accent-light)', 'var(--purple-soft)', 'Business', 'A client paying setup + recurring fees', '/businesses/add')}
-      ${item('layers', 'var(--blue)', 'var(--blue-soft)', 'Asset', 'A passive income source', '/assets/add')}
+      ${item('receipt', 'var(--accent)', 'var(--purple-soft)', 'Invoice', 'A one-time job you delivered', '/invoices/new')}
+      ${item('building2', 'var(--blue)', 'var(--blue-soft)', 'Client', 'A business paying recurring fees', '/businesses/add')}
+      ${item('layers', 'var(--yellow)', 'var(--yellow-soft)', 'Asset', 'A passive income source', '/assets/add')}
       ${item('server', 'var(--red)', 'var(--red-soft)', 'Expense', 'A platform or service you pay for', '/platforms/add')}
     </div>`;
   document.body.appendChild(overlay);
@@ -117,8 +119,8 @@ function openQuickAdd() {
 }
 
 export function renderTopbar(title, opts = {}) {
-  const addLabel = opts.addLabel || 'Add Asset';
-  const addHash = opts.addHash || '/assets/add';
+  const addLabel = opts.addLabel || 'New Invoice';
+  const addHash = opts.addHash || '/invoices/new';
   const addBtn = opts.noAdd ? '' : `
         <button class="btn btn-primary btn-sm" onclick="location.hash='#${addHash}'">
           ${icon('plus', 15)} <span class="add-label">${addLabel}</span>
@@ -129,12 +131,15 @@ export function renderTopbar(title, opts = {}) {
         <button class="mobile-menu-btn" id="mobile-menu-btn">${icon('menu', 22)}</button>
         <div class="topbar-title">${title}</div>
       </div>
+      <div class="topbar-search">
+        ${icon('search', 16)}
+        <input class="search-input" id="global-search" type="text" placeholder="Search clients, invoices, assets…" autocomplete="off" />
+        <span class="search-kbd">⌘K</span>
+        <div class="search-results" id="search-results"></div>
+      </div>
       <div class="topbar-right">
         <button class="btn btn-secondary btn-sm btn-icon" id="theme-btn" title="Toggle light / dark">
           ${icon(currentTheme() === 'dark' ? 'sun' : 'moon', 16)}
-        </button>
-        <button class="btn btn-secondary btn-sm" data-install style="display:none">
-          ${icon('download', 15)} Install
         </button>
         ${addBtn}
       </div>
@@ -181,6 +186,9 @@ export function attachNavbarEvents() {
   const fab = document.getElementById('quick-add');
   if (fab) fab.addEventListener('click', openQuickAdd);
 
-  // Show/wire the "Install app" buttons if the browser allows installation
+  // Global search (⌘K)
+  initGlobalSearch();
+
+  // Show/wire the install card if the browser allows installation
   wireInstallButtons();
 }

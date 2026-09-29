@@ -17,7 +17,7 @@ export async function renderAddAsset(params) {
   app.innerHTML = `
     ${renderSidebar(editId ? 'assets' : 'add')}
     <div class="main-content">
-      ${renderTopbar(editId ? 'Edit Asset' : 'Add Asset')}
+      ${renderTopbar(editId ? 'Edit Asset' : 'Add Asset', { noAdd: true })}
       <div class="page-content">
         <div class="page-header" style="display:flex;align-items:center;gap:12px">
           <button class="btn btn-ghost btn-sm btn-icon" onclick="history.back()">${icon('arrowLeft', 16)}</button>

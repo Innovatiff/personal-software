@@ -150,6 +150,19 @@ export async function addInvoice(data) {
   });
 }
 
+export async function updateInvoice(id, data) {
+  await updateDoc(doc(db, 'invoices', id), {
+    ...data,
+    updatedAt: serverTimestamp()
+  });
+}
+
+/** Next sequential invoice number, e.g. INV-0007. */
+export async function nextInvoiceNumber() {
+  const all = await getInvoices();
+  return 'INV-' + String(all.length + 1).padStart(4, '0');
+}
+
 export async function deleteInvoice(id) {
   await deleteDoc(doc(db, 'invoices', id));
 }

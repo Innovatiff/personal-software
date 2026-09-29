@@ -12,7 +12,7 @@ export function renderSettings() {
   document.getElementById('app').innerHTML = `
     ${renderSidebar('settings')}
     <div class="main-content">
-      ${renderTopbar('Settings')}
+      ${renderTopbar('Settings', { noAdd: true })}
       <div class="page-content" style="max-width:600px">
         <div class="page-header">
           <h1 class="page-title">Settings</h1>

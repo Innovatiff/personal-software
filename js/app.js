@@ -15,6 +15,7 @@ import { renderBusinesses } from './pages/businesses.js';
 import { renderAddBusiness } from './pages/add-business.js';
 import { renderInvoices } from './pages/invoices.js';
 import { renderInvoiceDetail } from './pages/invoice-detail.js';
+import { renderNewInvoice } from './pages/new-invoice.js';
 import { renderNotFound } from './pages/not-found.js';
 import { initPWA } from './pwa.js';
 import { initTheme } from './theme.js';
@@ -57,6 +58,7 @@ onAuthStateChanged(auth, (user) => {
     .on('/businesses/add', guard(() => renderAddBusiness({})))
     .on('/businesses/:id/edit', guard((p) => renderAddBusiness(p)))
     .on('/invoices', guard(renderInvoices))
+    .on('/invoices/new', guard(renderNewInvoice))
     .on('/invoices/:id', guard(renderInvoiceDetail))
     .on('/assets', guard(renderAssets))
     .on('/assets/add', guard(() => renderAddAsset({})))

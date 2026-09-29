@@ -226,3 +226,57 @@ export function formatShortDate(value) {
   if (!d) return '—';
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
+
+// ── Month buckets (for charts + "this month" math on ISO dates) ──
+
+/** 'YYYY-MM' for a 'YYYY-MM-DD' string (or '' if empty). */
+export function isoMonthKey(iso) {
+  return iso && iso.length >= 7 ? iso.slice(0, 7) : '';
+}
+
+/** 'YYYY-MM' for a Firestore timestamp / Date. */
+export function tsMonthKey(ts) {
+  if (!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** True if a 'YYYY-MM-DD' string falls in the current calendar month. */
+export function isThisMonthISO(iso) {
+  return !!iso && isoMonthKey(iso) === tsMonthKey(new Date());
+}
+
+/** The last n months, oldest → newest: [{ key:'2026-09', label:'Sep' }, …] */
+export function lastMonths(n) {
+  const out = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    out.push({
+      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      label: d.toLocaleDateString('en-US', { month: 'short' }),
+      full: d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+    });
+  }
+  return out;
+}
+
+/** Tiny inline sparkline (area + line) for a series of numbers. */
+export function sparkline(values, { width = 96, height = 34, color = 'var(--accent)' } = {}) {
+  const v = values.length ? values : [0, 0];
+  const max = Math.max(...v, 1), min = Math.min(...v, 0);
+  const span = max - min || 1;
+  const stepX = width / (v.length - 1 || 1);
+  const pts = v.map((y, i) => [i * stepX, height - 3 - ((y - min) / span) * (height - 6)]);
+  const line = pts.map(p => p.map(n => n.toFixed(1)).join(',')).join(' ');
+  const area = `0,${height} ${line} ${width},${height}`;
+  const id = 'sp' + Math.random().toString(36).slice(2, 8);
+  return `
+    <svg class="sparkline" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" aria-hidden="true">
+      <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="${color}" stop-opacity="0.28"/><stop offset="1" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient></defs>
+      <polygon points="${area}" fill="url(#${id})"/>
+      <polyline points="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+}

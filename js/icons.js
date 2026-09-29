@@ -89,19 +89,20 @@ export function icon(name, size = 20, opts = {}) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" style="display:block">${body}</svg>`;
 }
 
-/** The app's brand mark — a gradient tile with a layered-assets glyph. */
+/** The Innovatif brand mark — a white "V" chevron on a black rounded tile. */
 export function brandMark(size = 30) {
   return `
     <svg width="${size}" height="${size}" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0">
-      <rect width="32" height="32" rx="8.5" fill="url(#papGrad)"/>
-      <path d="M16 7.5l7 4-7 4-7-4 7-4Z" fill="#fff" fill-opacity="0.95"/>
-      <path d="M9 16l7 4 7-4" stroke="#fff" stroke-opacity="0.65" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M9 20l7 4 7-4" stroke="#fff" stroke-opacity="0.4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-      <defs>
-        <linearGradient id="papGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-          <stop stop-color="#38d996"/>
-          <stop offset="1" stop-color="#178a5e"/>
-        </linearGradient>
-      </defs>
+      <rect width="32" height="32" rx="8.5" fill="#0c0c11"/>
+      <path d="M8.6 10.2 16 22.2l7.4-12" stroke="#fff" stroke-width="3.3" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
+}
+
+/** Wordmark: mark + "Innovatif" (used on invoices and auth). */
+export function brandWordmark(size = 34) {
+  return `
+    <span style="display:inline-flex;align-items:center;gap:10px">
+      ${brandMark(size)}
+      <span style="font-weight:800;letter-spacing:-0.03em;font-size:${Math.round(size * 0.56)}px;line-height:1">Innovatif</span>
+    </span>`;
 }

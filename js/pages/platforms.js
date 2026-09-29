@@ -32,7 +32,7 @@ export async function renderPlatforms() {
   app.innerHTML = `
     ${renderSidebar('platforms')}
     <div class="main-content">
-      ${renderTopbar('Expenses', { addLabel: 'Add Platform', addHash: '/platforms/add' })}
+      ${renderTopbar('Expenses', { addLabel: 'Add Expense', addHash: '/platforms/add' })}
       <div class="page-content">
         <div class="page-header">
           <h1 class="page-title">Expenses</h1>
@@ -96,9 +96,9 @@ function buildPlatformsPage(platforms, activeFilter) {
     ${filtered.length === 0 ? `
       <div class="empty-state">
         <div class="empty-icon">${icon('server', 28)}</div>
-        <div class="empty-title">${activeFilter === 'All' ? 'No platforms yet' : `No ${activeFilter} platforms`}</div>
-        <div class="empty-desc">Add the tools and services you pay for to keep your assets running.</div>
-        <a href="#/platforms/add" class="btn btn-primary">${icon('plus', 16)} Add Platform</a>
+        <div class="empty-title">${activeFilter === 'All' ? 'No expenses yet' : `No ${activeFilter} expenses`}</div>
+        <div class="empty-desc">Add the tools and services you pay for to keep your business running.</div>
+        <a href="#/platforms/add" class="btn btn-primary">${icon('plus', 16)} Add Expense</a>
       </div>
     ` : `
       <div class="assets-grid">${filtered.map(platformCard).join('')}</div>

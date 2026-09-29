@@ -1,6 +1,6 @@
-import { getAssets, getPlatforms, getBusinesses } from '../db.js';
+import { getAssets, getPlatforms, getBusinesses, getInvoices } from '../db.js';
 import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/navbar.js';
-import { categoryMeta, serviceMeta, formatCurrency, computeMRR, isThisMonth } from '../utils.js';
+import { categoryMeta, serviceMeta, formatCurrency, computeMRR, isThisMonthISO } from '../utils.js';
 import { platformMeta } from './platforms.js';
 import { icon } from '../icons.js';
 import { animateCharts } from '../anim.js';
@@ -10,10 +10,10 @@ export async function renderMonthly() {
   app.innerHTML = `
     ${renderSidebar('monthly')}
     <div class="main-content">
-      ${renderTopbar('Monthly Overview')}
+      ${renderTopbar('Reports', { noAdd: true })}
       <div class="page-content">
         <div class="page-header">
-          <h1 class="page-title">Monthly Overview</h1>
+          <h1 class="page-title">Monthly Report</h1>
           <p class="page-desc">Your complete financial picture for this month</p>
         </div>
         <div class="stats-grid">${Array(6).fill('<div class="skeleton skeleton-card"></div>').join('')}</div>
@@ -22,15 +22,15 @@ export async function renderMonthly() {
   `;
   attachNavbarEvents();
 
-  let assets = [], platforms = [], businesses = [];
+  let assets = [], platforms = [], businesses = [], invoices = [];
   try {
-    [assets, platforms, businesses] = await Promise.all([getAssets(), getPlatforms(), getBusinesses()]);
+    [assets, platforms, businesses, invoices] = await Promise.all([getAssets(), getPlatforms(), getBusinesses(), getInvoices().catch(() => [])]);
   } catch (err) { console.error(err); }
 
-  build(assets, platforms, businesses);
+  build(assets, platforms, businesses, invoices);
 }
 
-function build(assets, platforms, businesses) {
+function build(assets, platforms, businesses, invoices) {
   // Recurring earnings = active business MRR + asset monthly income
   const bizItems = businesses
     .filter(b => b.status === 'Active')
@@ -47,7 +47,11 @@ function build(assets, platforms, businesses) {
 
   const totalEarnings = earnItems.reduce((s, x) => s + x.amount, 0);
   const totalExpenses = platItems.reduce((s, x) => s + x.amount, 0);
-  const setupThisMonth = businesses.filter(b => isThisMonth(b.createdAt)).reduce((s, b) => s + num(b.setupFee), 0);
+  // One-time services + setup fees collected this month (from paid invoices)
+  const oneTimeThisMonth = invoices
+    .filter(i => i.status !== 'Unpaid' && i.kind === 'one-time' && isThisMonthISO(i.paidDate))
+    .reduce((s, i) => s + num(i.amount), 0);
+  const setupThisMonth = oneTimeThisMonth;
   const net = totalEarnings - totalExpenses;
   const madeThisMonth = totalEarnings + setupThisMonth;
   const invested = assets.reduce((s, a) => s + num(a.totalCost), 0);
@@ -65,14 +69,14 @@ function build(assets, platforms, businesses) {
   const content = document.querySelector('.page-content');
   content.innerHTML = `
     <div class="page-header">
-      <h1 class="page-title">Monthly Overview</h1>
+      <h1 class="page-title">Monthly Report</h1>
       <p class="page-desc">Your complete financial picture for this month</p>
     </div>
 
     <div class="stats-grid">
       ${statCard('trendingUp', 'green', 'Recurring Earnings', formatCurrency(totalEarnings), 'Businesses + assets / mo', 'color:var(--green)')}
-      ${statCard('receipt', 'yellow', 'Setup Fees', formatCurrency(setupThisMonth), 'One-time, this month')}
-      ${statCard('wallet', 'green', 'Made This Month', formatCurrency(madeThisMonth), 'Earnings + setup', 'color:var(--accent-light)')}
+      ${statCard('sparkle', 'yellow', 'One-time Services', formatCurrency(oneTimeThisMonth), 'Paid this month')}
+      ${statCard('wallet', 'green', 'Made This Month', formatCurrency(madeThisMonth), 'Recurring + one-time', 'color:var(--accent-light)')}
       ${statCard('trendingDown', 'red', 'Monthly Expenses', formatCurrency(totalExpenses), 'Platform costs', 'color:var(--red)')}
       ${statCard(net >= 0 ? 'check' : 'alert', net >= 0 ? 'green' : 'red', 'Net Monthly', formatCurrency(Math.abs(net)), net >= 0 ? 'Profit' : 'At a loss', `color:${net >= 0 ? 'var(--green)' : 'var(--red)'}`)}
       ${statCard('pie', 'blue', 'Expense Ratio', expenseRatio ? expenseRatio + '%' : '—', 'Expenses ÷ earnings')}
@@ -105,7 +109,7 @@ function build(assets, platforms, businesses) {
           </thead>
           <tbody>
             ${row('Recurring Earnings', formatCurrency(totalEarnings), formatCurrency(totalEarnings * 12), 'var(--green)')}
-            ${row('Setup Fees (this month)', formatCurrency(setupThisMonth), '—', 'var(--text-secondary)', true)}
+            ${row('One-time services (this month)', formatCurrency(setupThisMonth), '—', 'var(--text-secondary)', true)}
             ${row('Monthly Expenses', '−' + formatCurrency(totalExpenses), '−' + formatCurrency(totalExpenses * 12), 'var(--red)')}
             ${row('Capital Invested', '—', formatCurrency(invested), 'var(--text-secondary)', true)}
             <tr>

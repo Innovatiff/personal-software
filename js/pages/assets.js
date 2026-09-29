@@ -13,10 +13,10 @@ export async function renderAssets() {
   app.innerHTML = `
     ${renderSidebar('assets')}
     <div class="main-content">
-      ${renderTopbar('My Assets')}
+      ${renderTopbar('Assets', { addLabel: 'Add Asset', addHash: '/assets/add' })}
       <div class="page-content">
         <div class="page-header">
-          <h1 class="page-title">My Assets</h1>
+          <h1 class="page-title">Assets</h1>
           <p class="page-desc">All your passive income sources in one place</p>
         </div>
         <div class="assets-grid">
@@ -69,7 +69,7 @@ function renderList() {
   content.innerHTML = `
     <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
       <div>
-        <h1 class="page-title">My Assets</h1>
+        <h1 class="page-title">Assets</h1>
         <p class="page-desc">${_all.length} asset${_all.length !== 1 ? 's' : ''} tracked</p>
       </div>
       <div class="search-wrap">

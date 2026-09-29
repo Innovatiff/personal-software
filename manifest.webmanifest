@@ -1,12 +1,12 @@
 {
-  "name": "Portfolio",
-  "short_name": "Portfolio",
-  "description": "Track passive assets, clients, monthly revenue and expenses.",
+  "name": "Innovatif",
+  "short_name": "Innovatif",
+  "description": "Innovatif — clients, invoices, revenue and expenses in one place.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#08080c",
-  "theme_color": "#0d0e13",
+  "background_color": "#f4f5f7",
+  "theme_color": "#ffffff",
   "orientation": "any",
   "categories": ["finance", "productivity", "business"],
   "icons": [

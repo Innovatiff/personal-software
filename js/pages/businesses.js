@@ -1,4 +1,4 @@
-import { getBusinesses, deleteBusiness, updateBusiness, getInvoices, addInvoice } from '../db.js';
+import { getBusinesses, deleteBusiness, updateBusiness, addInvoice, nextInvoiceNumber } from '../db.js';
 import { renderSidebar, renderTopbar, attachNavbarEvents } from '../components/navbar.js';
 import { auth } from '../firebase-config.js';
 import {
@@ -20,10 +20,10 @@ export async function renderBusinesses() {
   app.innerHTML = `
     ${renderSidebar('businesses')}
     <div class="main-content">
-      ${renderTopbar('Businesses', { addLabel: 'Add Business', addHash: '/businesses/add' })}
+      ${renderTopbar('Clients', { addLabel: 'Add Client', addHash: '/businesses/add' })}
       <div class="page-content">
         <div class="page-header">
-          <h1 class="page-title">Businesses</h1>
+          <h1 class="page-title">Clients</h1>
           <p class="page-desc">Clients you provide websites &amp; software to</p>
         </div>
         <div class="stats-grid">${Array(5).fill('<div class="skeleton skeleton-card"></div>').join('')}</div>
@@ -64,12 +64,12 @@ function renderList() {
   const content = document.querySelector('.page-content');
   content.innerHTML = `
     <div class="page-header">
-      <h1 class="page-title">Businesses</h1>
+      <h1 class="page-title">Clients</h1>
       <p class="page-desc">${_all.length} client${_all.length !== 1 ? 's' : ''} · ${activeCount} active</p>
     </div>
 
     <div class="stats-grid">
-      ${statBox('building2', 'purple', 'Total Businesses', _all.length, `${activeCount} active`)}
+      ${statBox('building2', 'purple', 'Total Clients', _all.length, `${activeCount} active`)}
       ${statBox('trendingUp', 'green', 'Recurring MRR', formatCurrency(activeMRR), 'Active clients / month', 'green')}
       ${statBox('receipt', 'yellow', 'Setup Fees', formatCurrency(setupThisMonth), 'Collected this month')}
       ${statBox('wallet', 'green', 'Total This Month', formatCurrency(totalThisMonth), 'MRR + setup fees', 'accent')}
@@ -180,6 +180,7 @@ function bizRow(b) {
 async function markPaid(id) {
   const b = _all.find(x => x.id === id);
   if (!b) return;
+  const isFirstPayment = !(b.paymentsCount > 0);
   const upd = { lastPaidDate: todayISO(), paymentsCount: (b.paymentsCount || 0) + 1 };
   try {
     await updateBusiness(id, upd);
@@ -191,11 +192,21 @@ async function markPaid(id) {
 
   // Auto-generate a professional invoice for this payment
   try {
-    const existing = await getInvoices();
-    const number = 'INV-' + String(existing.length + 1).padStart(4, '0');
+    const number = await nextInvoiceNumber();
     const users = Math.max(1, Number(b.users) || 1);
+    const mrr = computeMRR(b.price, b.period, users);
+    const items = [{
+      description: `${b.service || 'Service'} — monthly service`,
+      detail: `${users > 1 ? users + ' users × ' : ''}${formatCurrency(num(b.price))} ${(b.period || 'monthly').toLowerCase()}`,
+      amount: mrr,
+    }];
+    // The very first payment also collects the one-time setup fee
+    if (isFirstPayment && num(b.setupFee) > 0) {
+      items.push({ description: 'Setup & onboarding fee', detail: 'One-time', amount: num(b.setupFee) });
+    }
     await addInvoice({
       number,
+      kind: 'recurring',
       businessId: b.id,
       clientName: b.name,
       service: b.service || '',
@@ -203,11 +214,13 @@ async function markPaid(id) {
       period: b.period || 'Monthly',
       price: num(b.price),
       users,
-      amount: computeMRR(b.price, b.period, users),
+      items,
+      amount: items.reduce((s, it) => s + it.amount, 0),
       dueDay: b.dueDay || null,
       issueDate: todayISO(),
       paidDate: todayISO(),
       status: 'Paid',
+      notes: '',
       issuerName: auth.currentUser?.displayName || '',
       issuerEmail: auth.currentUser?.email || '',
     });
@@ -236,14 +249,14 @@ function emptyState(status, search) {
   const msg = search.trim()
     ? `No clients match "${escHtml(search)}".`
     : status === 'All'
-      ? "You haven't registered any businesses yet. Add your first client to start tracking revenue."
-      : `No ${status} businesses yet.`;
+      ? "You haven't registered any clients yet. Add your first client to start tracking revenue."
+      : `No ${status} clients yet.`;
   return `
     <div class="empty-state">
       <div class="empty-icon">${icon(search.trim() ? 'search' : 'building2', 28)}</div>
-      <div class="empty-title">${status === 'All' && !search.trim() ? 'No businesses yet' : 'Nothing found'}</div>
+      <div class="empty-title">${status === 'All' && !search.trim() ? 'No clients yet' : 'Nothing found'}</div>
       <div class="empty-desc">${msg}</div>
-      <a href="#/businesses/add" class="btn btn-primary">${icon('plus', 16)} Add Business</a>
+      <a href="#/businesses/add" class="btn btn-primary">${icon('plus', 16)} Add Client</a>
     </div>`;
 }
 
